@@ -14,21 +14,27 @@
     </div>
   </div>
   {% if videos %}
-  <div class="media-list">
+  <div class="tube-grid">
     {% for v in videos %}
-    <article class="media-row-card">
-      <a href="/tube/watch/{{ v.id }}" class="media-link media-row-link">
-      <div class="vid-thumb media-row-thumb">
+    <article class="tube-card">
+      <a href="/tube/watch/{{ v.id }}" class="media-link tube-card-link">
+      <div class="vid-thumb tube-card-thumb">
         {% if v.thumbnail %}
         <img src="/uploads/thumbs/{{ v.thumbnail }}" style="width:100%;height:100%;object-fit:cover">
         {% else %}
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         {% endif %}
       </div>
-      <div class="vid-info media-row-info">
-        <div class="vid-title">{{ v.title }}</div>
-        <div class="vid-meta">{{ v.author }} &nbsp;·&nbsp; {{ v.views }} views &nbsp;·&nbsp; {{ v.votes }}▲</div>
-        <div class="vid-meta" style="margin-top:3px">{{ v.desc[:72] }}{% if v.desc|length > 72 %}…{% endif %}</div>
+      <div class="tube-card-body">
+        <div class="tube-card-avatar">{{ v.author[0].upper() }}</div>
+        <div class="tube-card-copy">
+          <div class="vid-title">{{ v.title }}</div>
+          <div class="vid-meta">{{ v.author }}</div>
+          <div class="vid-meta">{{ v.views }} views &nbsp;·&nbsp; {{ v.votes }}▲</div>
+          {% if v.desc %}
+          <div class="vid-meta tube-card-desc">{{ v.desc[:78] }}{% if v.desc|length > 78 %}…{% endif %}</div>
+          {% endif %}
+        </div>
       </div>
       </a>
     </article>

@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_1943
+
+- Restyled Tube and Games into a more YouTube-like browse layout with wider thumbnail cards, avatar-style author badges, and tighter metadata spacing.
+- Kept the card sizing responsive so the browse pages feel familiar without stretching single items awkwardly.
+
 ## 2026.04.25_1937
 
 - Tightened Tube and Games into more compact horizontal media rows so uploads stop feeling oversized.
