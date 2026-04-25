@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2150
+
+- Added proxy-aware HTTPS support in the Flask app so LocalNet behaves correctly behind TLS and can use secure cookies for phone access.
+- Added a Caddy-based local HTTPS setup with [Caddyfile](/Users/mateocogeanu/Downloads/LocalNet/Caddyfile) and [HTTPS.md](/Users/mateocogeanu/Downloads/LocalNet/HTTPS.md) for phone-ready voice calls.
+
 ## 2026.04.25_2140
 
 - Added DM voice calling with WebRTC audio, including call invite, accept or decline, ringing, mute, hang up, and disconnect cleanup.

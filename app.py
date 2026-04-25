@@ -30,6 +30,7 @@ from flask import (
     url_for,
 )
 from flask_socketio import SocketIO, emit
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -467,6 +468,10 @@ app = Flask(__name__, template_folder=str(TEMPLATES_DIR), static_folder=str(STAT
 app.config["SECRET_KEY"] = load_or_create_secret()
 app.config["MAX_CONTENT_LENGTH"] = 512 * 1024 * 1024
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+app.config["PREFERRED_URL_SCHEME"] = "https" if os.environ.get("LOCALNET_HTTPS") == "1" else "http"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("LOCALNET_HTTPS") == "1"
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 socketio = SocketIO(app, async_mode="threading")
 
 online_users: dict[str, str] = {}
@@ -1512,4 +1517,9 @@ bootstrap_files()
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=2453, debug=True)
+    socketio.run(
+        app,
+        host=os.environ.get("LOCALNET_HOST_BIND", "0.0.0.0"),
+        port=int(os.environ.get("LOCALNET_PORT", "2453")),
+        debug=os.environ.get("LOCALNET_DEBUG", "1") == "1",
+    )
