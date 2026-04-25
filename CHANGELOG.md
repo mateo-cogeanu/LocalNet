@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2048
+
+- Made login sessions persistent across app restarts by storing a stable LocalNet secret key instead of generating a new one each launch.
+- Changed 2FA into a separate second step so password entry succeeds first and the code is requested on the next screen without making you type the password again.
+
 ## 2026.04.25_1953
 
 - Made pinned favorites more compact so they show as small icon-and-name pills under `⟨LocalNet⟩`.

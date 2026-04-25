@@ -47,6 +47,7 @@ PASTES_FILE = DATA_DIR / "pastes.json"
 WIKI_FILE = DATA_DIR / "wiki.json"
 FORUMS_FILE = DATA_DIR / "forums.json"
 CHAT_FILE = DATA_DIR / "chat.json"
+SECRET_FILE = DATA_DIR / "secret_key.txt"
 
 VIDEO_DIR = UPLOADS_DIR / "videos"
 THUMBS_DIR = UPLOADS_DIR / "thumbs"
@@ -105,6 +106,15 @@ def load_json(path: Path, default: Any) -> Any:
 
 def save_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+
+
+def load_or_create_secret() -> str:
+    ensure_dirs()
+    if SECRET_FILE.exists():
+        return SECRET_FILE.read_text(encoding="utf-8").strip()
+    secret = os.environ.get("LOCALNET_SECRET", secrets.token_hex(32))
+    SECRET_FILE.write_text(secret, encoding="utf-8")
+    return secret
 
 
 def current_user() -> str | None:
@@ -437,8 +447,9 @@ class ForumStore:
 
 
 app = Flask(__name__, template_folder=str(TEMPLATES_DIR), static_folder=str(STATIC_DIR))
-app.config["SECRET_KEY"] = os.environ.get("LOCALNET_SECRET", secrets.token_hex(32))
+app.config["SECRET_KEY"] = load_or_create_secret()
 app.config["MAX_CONTENT_LENGTH"] = 512 * 1024 * 1024
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 socketio = SocketIO(app, async_mode="threading")
 
 online_users: dict[str, str] = {}
@@ -462,42 +473,67 @@ def login():
         return redirect(url_for("home"))
 
     error = None
-    username = ""
-    otp_required = False
+    username = session.get("pending_login_user", "")
+    next_target = session.get("pending_login_next", request.args.get("next", ""))
+    stage = "2fa" if session.get("pending_login_user") else "password"
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        otp = request.form.get("otp", "").strip()
         users = get_users()
+        form_stage = request.form.get("stage", "password")
 
-        if not username or not password:
-            error = "Username and password are required."
-        elif username not in users:
-            users[username] = {
-                "password_hash": generate_password_hash(password),
-                "created_at": now_utc().isoformat(),
-                "two_factor_enabled": False,
-                "two_factor_secret": "",
-            }
-            save_users(users)
-            session["user"] = username
-            return redirect(request.args.get("next") or url_for("home"))
+        if form_stage == "2fa" and session.get("pending_login_user"):
+            username = session.get("pending_login_user", "")
+            otp = request.form.get("otp", "").strip()
+            account = users.get(username)
+            if not account:
+                session.pop("pending_login_user", None)
+                session.pop("pending_login_next", None)
+                username = ""
+                stage = "password"
+                error = "That account could not be found anymore."
+            elif verify_totp(account.get("two_factor_secret", ""), otp):
+                session.pop("pending_login_user", None)
+                next_target = session.pop("pending_login_next", "") or url_for("home")
+                session["user"] = username
+                session.permanent = True
+                return redirect(next_target)
+            else:
+                stage = "2fa"
+                error = "Enter the 6-digit code from your authenticator app."
         else:
-            account = users[username]
-            if not check_password_hash(account["password_hash"], password):
-                error = "Incorrect password."
-            elif account.get("two_factor_enabled"):
-                otp_required = True
-                if not verify_totp(account.get("two_factor_secret", ""), otp):
-                    error = "Two-factor code required." if not otp else "Invalid two-factor code."
+            username = request.form.get("username", "").strip()
+            password = request.form.get("password", "")
+            next_target = request.form.get("next", "").strip() or request.args.get("next", "")
+
+            if not username or not password:
+                error = "Username and password are required."
+            elif username not in users:
+                users[username] = {
+                    "password_hash": generate_password_hash(password),
+                    "created_at": now_utc().isoformat(),
+                    "two_factor_enabled": False,
+                    "two_factor_secret": "",
+                    "bio": "",
+                    "pfp": "",
+                    "banner": "",
+                }
+                save_users(users)
+                session["user"] = username
+                session.permanent = True
+                return redirect(next_target or url_for("home"))
+            else:
+                account = users[username]
+                if not check_password_hash(account["password_hash"], password):
+                    error = "Incorrect password."
+                elif account.get("two_factor_enabled"):
+                    session["pending_login_user"] = username
+                    session["pending_login_next"] = next_target
+                    return redirect(url_for("login"))
                 else:
                     session["user"] = username
-                    return redirect(request.args.get("next") or url_for("home"))
-            else:
-                session["user"] = username
-                return redirect(request.args.get("next") or url_for("home"))
+                    session.permanent = True
+                    return redirect(next_target or url_for("home"))
 
-    return render_template("login.html", error=error, username=username, otp_required=otp_required)
+    return render_template("login.html", error=error, username=username, stage=stage, next_target=next_target)
 
 
 @app.route("/logout")
