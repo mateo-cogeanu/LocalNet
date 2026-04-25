@@ -471,6 +471,23 @@ socketio = SocketIO(app, async_mode="threading")
 
 online_users: dict[str, str] = {}
 user_sids: dict[str, set[str]] = {}
+pending_calls: dict[str, str] = {}
+active_calls: dict[str, str] = {}
+
+
+def emit_to_user(event: str, payload: dict[str, Any], username: str) -> None:
+    for sid in list(user_sids.get(username, set())):
+        socketio.emit(event, payload, to=sid)
+
+
+def clear_call_links(username: str) -> tuple[str | None, str | None]:
+    pending_peer = pending_calls.pop(username, None)
+    if pending_peer and pending_calls.get(pending_peer) == username:
+        pending_calls.pop(pending_peer, None)
+    active_peer = active_calls.pop(username, None)
+    if active_peer and active_calls.get(active_peer) == username:
+        active_calls.pop(active_peer, None)
+    return pending_peer, active_peer
 
 
 @app.context_processor
@@ -1376,6 +1393,86 @@ def socket_message(data):
         emit("global_message", serialize_message(payload, sender), broadcast=True)
 
 
+@socketio.on("call_offer")
+def socket_call_offer(data):
+    sender = current_user() or (data or {}).get("from") or ""
+    recipient = ((data or {}).get("to") or "").strip()
+    offer = (data or {}).get("offer")
+    if not sender or not recipient or recipient == sender or not offer:
+        emit("call_error", {"message": "Call could not be started."})
+        return
+    if recipient not in get_users():
+        emit("call_error", {"message": "That user does not exist."})
+        return
+    if recipient not in user_sids:
+        emit("call_unavailable", {"peer": recipient})
+        return
+    if active_calls.get(sender) not in {None, recipient} or active_calls.get(recipient) not in {None, sender}:
+        emit("call_busy", {"peer": recipient})
+        return
+    if pending_calls.get(recipient) not in {None, sender}:
+        emit("call_busy", {"peer": recipient})
+        return
+    pending_calls[sender] = recipient
+    pending_calls[recipient] = sender
+    emit_to_user(
+        "call_offer",
+        {"from": sender, "offer": offer, "profile": public_profile(sender)},
+        recipient,
+    )
+
+
+@socketio.on("call_answer")
+def socket_call_answer(data):
+    sender = current_user() or (data or {}).get("from") or ""
+    recipient = ((data or {}).get("to") or "").strip()
+    accepted = bool((data or {}).get("accepted"))
+    answer = (data or {}).get("answer")
+    if not sender or not recipient:
+        return
+    if pending_calls.get(sender) != recipient and active_calls.get(sender) != recipient:
+        return
+    pending_calls.pop(sender, None)
+    if pending_calls.get(recipient) == sender:
+        pending_calls.pop(recipient, None)
+    if not accepted or not answer:
+        emit_to_user("call_declined", {"from": sender}, recipient)
+        return
+    active_calls[sender] = recipient
+    active_calls[recipient] = sender
+    emit_to_user(
+        "call_answer",
+        {"from": sender, "answer": answer, "profile": public_profile(sender)},
+        recipient,
+    )
+
+
+@socketio.on("call_ice")
+def socket_call_ice(data):
+    sender = current_user() or (data or {}).get("from") or ""
+    recipient = ((data or {}).get("to") or "").strip()
+    candidate = (data or {}).get("candidate")
+    if not sender or not recipient or not candidate:
+        return
+    if active_calls.get(sender) == recipient or pending_calls.get(sender) == recipient or pending_calls.get(recipient) == sender:
+        emit_to_user("call_ice", {"from": sender, "candidate": candidate}, recipient)
+
+
+@socketio.on("call_end")
+def socket_call_end(data):
+    sender = current_user() or (data or {}).get("from") or ""
+    peer = ((data or {}).get("to") or "").strip() or active_calls.get(sender) or pending_calls.get(sender) or ""
+    if not sender or not peer:
+        return
+    pending_calls.pop(sender, None)
+    if pending_calls.get(peer) == sender:
+        pending_calls.pop(peer, None)
+    active_calls.pop(sender, None)
+    if active_calls.get(peer) == sender:
+        active_calls.pop(peer, None)
+    emit_to_user("call_end", {"from": sender}, peer)
+
+
 @socketio.on("disconnect")
 def socket_disconnect():
     username = online_users.pop(request.sid, None)
@@ -1384,6 +1481,12 @@ def socket_disconnect():
             user_sids[username].discard(request.sid)
             if not user_sids[username]:
                 user_sids.pop(username, None)
+        if username not in user_sids:
+            pending_peer, active_peer = clear_call_links(username)
+            if active_peer:
+                emit_to_user("call_end", {"from": username}, active_peer)
+            elif pending_peer:
+                emit_to_user("call_unavailable", {"peer": username}, pending_peer)
         emit("global_message", {"sender": "System", "text": f"{username} left chat.", "ts": ts_human(), "kind": "system"}, broadcast=True)
     emit("userlist", sorted(set(online_users.values())), broadcast=True)
 

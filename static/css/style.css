@@ -358,6 +358,12 @@ nav::after {
   font-weight: 700;
 }
 
+.btn-danger {
+  background: color-mix(in srgb, var(--red) 22%, var(--surface2));
+  border-color: color-mix(in srgb, var(--red) 38%, transparent);
+  color: #fff2f2;
+}
+
 .btn-ghost {
   background: color-mix(in srgb, var(--surface2) 66%, transparent);
 }
@@ -1182,6 +1188,75 @@ textarea {
 .sidebar-title, .chat-header { padding: 18px; border-bottom: 1px solid var(--border); }
 .chat-header { display: flex; align-items: center; }
 .chat-header-stack { justify-content: space-between; }
+.chat-header-copy {
+  min-width: 0;
+}
+.chat-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chat-online-count {
+  color: var(--text2);
+  font-size: 0.83rem;
+  white-space: nowrap;
+}
+.call-panel {
+  display: grid;
+  gap: 8px;
+  min-width: min(320px, 48vw);
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.045);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, transparent), color-mix(in srgb, var(--surface2) 86%, transparent)),
+    radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.028), transparent 68%);
+}
+.call-status-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.call-status-line strong {
+  font-size: 0.9rem;
+}
+.call-controls,
+.call-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.call-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--text2);
+  box-shadow: 0 0 0 0 rgba(255,255,255,0.12);
+}
+.call-dot.incoming,
+.call-dot.calling {
+  background: #f7d774;
+  box-shadow: 0 0 0 6px rgba(247, 215, 116, 0.12);
+}
+.call-dot.active {
+  background: var(--green);
+  box-shadow: 0 0 0 6px rgba(57, 217, 138, 0.12);
+}
+.call-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent2) 8%, transparent)),
+    color-mix(in srgb, var(--surface2) 68%, transparent);
+}
+.hidden {
+  display: none !important;
+}
 .chat-nav-list { display: grid; gap: 8px; }
 .chat-side-label {
   color: var(--text2);
@@ -1528,6 +1603,15 @@ html.compact nav { padding: 10px 18px; }
   .page-header, .forum-top, .forum-comment-actions, .chat-input {
     flex-direction: column;
     align-items: stretch;
+  }
+  .chat-header,
+  .chat-header-tools,
+  .call-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .call-panel {
+    min-width: 0;
   }
   .hub-stats {
     align-items: stretch;

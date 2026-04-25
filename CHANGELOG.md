@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2140
+
+- Added DM voice calling with WebRTC audio, including call invite, accept or decline, ringing, mute, hang up, and disconnect cleanup.
+- Upgraded the chat header with a real call panel and incoming-call banner so voice calls feel built into LocalNet instead of bolted on.
+
 ## 2026.04.25_2132
 
 - Rebuilt the homepage hero blobs as separate animated layers so they visibly drift instead of blending into one mushy glow.

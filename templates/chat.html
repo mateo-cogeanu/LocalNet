@@ -17,12 +17,26 @@
   </div>
   <div class="chat-main">
     <div class="chat-header chat-header-stack">
-      <div>
+      <div class="chat-header-copy">
         <strong id="chat-title">⟨LocalNet⟩ Lobby</strong>
         <div class="meta" id="chat-sub">Global chat for everyone on this LocalNet.</div>
       </div>
-      <span style="color:var(--text2);font-size:.83rem"><span id="cnt">0</span> online</span>
+      <div class="chat-header-tools">
+        <div id="call-panel" class="call-panel hidden">
+          <div class="call-status-line">
+            <span class="call-dot" id="call-dot"></span>
+            <strong id="call-status">Ready to call</strong>
+          </div>
+          <div class="call-controls">
+            <button id="call-btn" class="btn btn-ghost btn-sm" type="button" onclick="startVoiceCall()">Call</button>
+            <button id="mute-btn" class="btn btn-ghost btn-sm hidden" type="button" onclick="toggleMute()">Mute</button>
+            <button id="hangup-btn" class="btn btn-sm btn-danger hidden" type="button" onclick="hangUpCall()">Hang up</button>
+          </div>
+        </div>
+        <span class="chat-online-count"><span id="cnt">0</span> online</span>
+      </div>
     </div>
+    <div id="call-banner" class="call-banner hidden"></div>
     <div class="chat-messages" id="msgs"></div>
     <div class="chat-input">
       <input type="text" id="msg-in" placeholder="Type a message — Enter to send" autocomplete="off">
@@ -30,12 +44,22 @@
     </div>
   </div>
 </div>
+<audio id="remote-audio" autoplay playsinline></audio>
 <script>
 const ME = {{ user|tojson }};
 const INITIAL_USERS = {{ chat_users|tojson }};
 const INITIAL_CONVERSATIONS = {{ conversations|tojson }};
 let activePeer = {{ active_peer|tojson }};
 let onlineUsers = [];
+let callState = 'idle';
+let callPeer = '';
+let incomingOffer = null;
+let peerConnection = null;
+let localStream = null;
+let remoteStream = null;
+let pendingCandidates = [];
+let muteEnabled = false;
+const callSupported = !!(navigator.mediaDevices && window.RTCPeerConnection);
 
 const socket = io();
 socket.on('connect', () => socket.emit('join', { username: ME }));
@@ -55,6 +79,63 @@ socket.on('userlist', u => {
   onlineUsers = u.filter(name => name !== ME);
   renderUserList();
   document.getElementById('cnt').textContent = u.length;
+  updateCallUi();
+});
+socket.on('call_offer', async d => {
+  if (!d || !d.from || d.from === ME) return;
+  if (callState !== 'idle' && callPeer !== d.from) {
+    socket.emit('call_answer', { to: d.from, accepted: false });
+    return;
+  }
+  callPeer = d.from;
+  incomingOffer = d.offer;
+  pendingCandidates = [];
+  callState = 'incoming';
+  switchThread(d.from);
+  showToast(`Incoming call from ${d.from}`);
+  updateCallUi();
+});
+socket.on('call_answer', async d => {
+  if (!d || d.from !== callPeer || !peerConnection || !d.answer) return;
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(d.answer));
+  await flushPendingCandidates();
+  callState = 'active';
+  updateCallUi();
+});
+socket.on('call_ice', async d => {
+  if (!d || d.from !== callPeer || !d.candidate) return;
+  if (!peerConnection || !peerConnection.remoteDescription) {
+    pendingCandidates.push(d.candidate);
+    return;
+  }
+  try {
+    await peerConnection.addIceCandidate(d.candidate);
+  } catch {
+    showToast('Call network sync failed.');
+  }
+});
+socket.on('call_declined', d => {
+  const peer = d && d.from ? d.from : callPeer;
+  if (peer !== callPeer) return;
+  resetCall(`Call declined by ${peer}.`);
+});
+socket.on('call_busy', d => {
+  const peer = d && d.peer ? d.peer : callPeer;
+  if (peer !== callPeer) return;
+  resetCall(`${peer} is busy right now.`);
+});
+socket.on('call_unavailable', d => {
+  const peer = d && d.peer ? d.peer : callPeer;
+  if (peer && peer !== callPeer && callState !== 'incoming') return;
+  resetCall(`${peer || 'That user'} is unavailable.`);
+});
+socket.on('call_end', d => {
+  const peer = d && d.from ? d.from : callPeer;
+  if (peer && callPeer && peer !== callPeer) return;
+  resetCall(peer ? `${peer} ended the call.` : 'Call ended.');
+});
+socket.on('call_error', d => {
+  resetCall((d && d.message) || 'Call could not be started.');
 });
 
 function hs(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(s || '')); return d.innerHTML; }
@@ -116,6 +197,236 @@ function renderDmList() {
   `).join('');
 }
 
+function setCallBanner(html) {
+  const banner = document.getElementById('call-banner');
+  if (!banner) return;
+  if (!html) {
+    banner.classList.add('hidden');
+    banner.innerHTML = '';
+    return;
+  }
+  banner.classList.remove('hidden');
+  banner.innerHTML = html;
+}
+
+function updateCallUi() {
+  const panel = document.getElementById('call-panel');
+  const status = document.getElementById('call-status');
+  const dot = document.getElementById('call-dot');
+  const callBtn = document.getElementById('call-btn');
+  const muteBtn = document.getElementById('mute-btn');
+  const hangBtn = document.getElementById('hangup-btn');
+  if (!panel || !status || !dot || !callBtn || !muteBtn || !hangBtn) return;
+  const inDm = !!activePeer;
+  const target = callPeer || activePeer;
+  panel.classList.toggle('hidden', !inDm && callState === 'idle');
+  callBtn.classList.toggle('hidden', callState !== 'idle');
+  muteBtn.classList.toggle('hidden', callState !== 'active');
+  hangBtn.classList.toggle('hidden', callState === 'idle');
+  callBtn.disabled = !callSupported || !activePeer || !onlineUsers.includes(activePeer) || (callState !== 'idle' && callPeer !== activePeer);
+  muteBtn.textContent = muteEnabled ? 'Unmute' : 'Mute';
+  dot.className = `call-dot ${callState}`;
+
+  if (!callSupported) {
+    status.textContent = 'Voice calls are not supported here.';
+    setCallBanner('');
+    return;
+  }
+
+  if (callState === 'incoming') {
+    status.textContent = `Incoming call from ${callPeer}`;
+    setCallBanner(`
+      <div>
+        <strong>${hs(callPeer)}</strong>
+        <div class="meta">Voice call coming in on this DM.</div>
+      </div>
+      <div class="call-banner-actions">
+        <button class="btn btn-accent btn-sm" type="button" onclick="acceptIncomingCall()">Accept</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="declineIncomingCall()">Decline</button>
+      </div>
+    `);
+    return;
+  }
+
+  if (callState === 'calling') {
+    status.textContent = `Calling ${target}`;
+    setCallBanner(`
+      <div>
+        <strong>Calling ${hs(target)}</strong>
+        <div class="meta">Waiting for them to pick up.</div>
+      </div>
+      <div class="call-banner-actions">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="hangUpCall()">Cancel</button>
+      </div>
+    `);
+    return;
+  }
+
+  if (callState === 'active') {
+    status.textContent = `In call with ${target}`;
+    setCallBanner(`
+      <div>
+        <strong>Voice call live with ${hs(target)}</strong>
+        <div class="meta">${muteEnabled ? 'Your mic is muted.' : 'Your mic is live.'}</div>
+      </div>
+      <div class="call-banner-actions">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="toggleMute()">${muteEnabled ? 'Unmute' : 'Mute'}</button>
+        <button class="btn btn-sm btn-danger" type="button" onclick="hangUpCall()">Hang up</button>
+      </div>
+    `);
+    return;
+  }
+
+  status.textContent = activePeer
+    ? (onlineUsers.includes(activePeer) ? `Ready to call ${activePeer}` : `${activePeer} is offline`)
+    : 'Open a DM to call';
+  setCallBanner('');
+}
+
+async function ensureLocalAudio() {
+  if (localStream) return localStream;
+  localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  localStream.getAudioTracks().forEach(track => { track.enabled = !muteEnabled; });
+  return localStream;
+}
+
+async function createPeerConnection(peer) {
+  if (peerConnection) {
+    peerConnection.close();
+  }
+  callPeer = peer;
+  pendingCandidates = [];
+  peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  remoteStream = new MediaStream();
+  const remoteAudio = document.getElementById('remote-audio');
+  if (remoteAudio) remoteAudio.srcObject = remoteStream;
+  peerConnection.ontrack = event => {
+    event.streams.forEach(stream => {
+      stream.getAudioTracks().forEach(track => remoteStream.addTrack(track));
+    });
+  };
+  peerConnection.onicecandidate = event => {
+    if (event.candidate && callPeer) {
+      socket.emit('call_ice', { to: callPeer, candidate: event.candidate });
+    }
+  };
+  peerConnection.onconnectionstatechange = () => {
+    if (!peerConnection) return;
+    if (peerConnection.connectionState === 'connected') {
+      callState = 'active';
+      updateCallUi();
+    }
+    if (['failed', 'closed', 'disconnected'].includes(peerConnection.connectionState) && callState !== 'idle') {
+      resetCall('Call connection ended.');
+    }
+  };
+  const stream = await ensureLocalAudio();
+  stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+  return peerConnection;
+}
+
+async function flushPendingCandidates() {
+  if (!peerConnection || !pendingCandidates.length) return;
+  const queued = [...pendingCandidates];
+  pendingCandidates = [];
+  for (const candidate of queued) {
+    try {
+      await peerConnection.addIceCandidate(candidate);
+    } catch {
+      showToast('Call network sync failed.');
+    }
+  }
+}
+
+async function startVoiceCall() {
+  if (!callSupported) {
+    showToast('Voice calls are not supported in this browser.');
+    return;
+  }
+  if (!activePeer || !onlineUsers.includes(activePeer)) {
+    showToast('Open a DM with someone online first.');
+    return;
+  }
+  try {
+    callState = 'calling';
+    callPeer = activePeer;
+    updateCallUi();
+    const pc = await createPeerConnection(activePeer);
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    await pc.setLocalDescription(offer);
+    socket.emit('call_offer', { to: activePeer, offer });
+  } catch {
+    resetCall('Microphone access is needed to start a call.');
+  }
+}
+
+async function acceptIncomingCall() {
+  if (!incomingOffer || !callPeer) return;
+  try {
+    const from = callPeer;
+    const pc = await createPeerConnection(from);
+    await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+    await flushPendingCandidates();
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    incomingOffer = null;
+    callState = 'active';
+    socket.emit('call_answer', { to: from, accepted: true, answer });
+    updateCallUi();
+  } catch {
+    declineIncomingCall('Microphone access is needed to answer.');
+  }
+}
+
+function declineIncomingCall(reason) {
+  if (callPeer) {
+    socket.emit('call_answer', { to: callPeer, accepted: false });
+  }
+  resetCall(reason || 'Call declined.');
+}
+
+function toggleMute() {
+  muteEnabled = !muteEnabled;
+  if (localStream) {
+    localStream.getAudioTracks().forEach(track => { track.enabled = !muteEnabled; });
+  }
+  updateCallUi();
+}
+
+function stopLocalAudio() {
+  if (!localStream) return;
+  localStream.getTracks().forEach(track => track.stop());
+  localStream = null;
+}
+
+function resetCall(message) {
+  const remoteAudio = document.getElementById('remote-audio');
+  if (peerConnection) {
+    peerConnection.ontrack = null;
+    peerConnection.onicecandidate = null;
+    peerConnection.onconnectionstatechange = null;
+    peerConnection.close();
+  }
+  if (remoteAudio) remoteAudio.srcObject = null;
+  peerConnection = null;
+  remoteStream = null;
+  stopLocalAudio();
+  incomingOffer = null;
+  pendingCandidates = [];
+  muteEnabled = false;
+  callState = 'idle';
+  callPeer = '';
+  updateCallUi();
+  if (message) showToast(message);
+}
+
+function hangUpCall() {
+  if (callPeer) {
+    socket.emit('call_end', { to: callPeer });
+  }
+  resetCall('Call ended.');
+}
+
 function upsertConversation(peer, message) {
   if (!peer) return;
   const existing = INITIAL_CONVERSATIONS.find(conv => conv.peer === peer);
@@ -140,6 +451,7 @@ async function loadThread() {
   document.getElementById('chat-title').textContent = activePeer ? `DM with ${activePeer}` : '⟨LocalNet⟩ Lobby';
   document.getElementById('chat-sub').textContent = activePeer ? 'Private messages between just the two of you.' : 'Global chat for everyone on this LocalNet.';
   document.querySelectorAll('.chat-space-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.peer === activePeer));
+  updateCallUi();
 }
 
 function switchThread(peer) {
@@ -165,6 +477,11 @@ document.addEventListener('DOMContentLoaded', () => {
   renderUserList();
   renderDmList();
   loadThread();
+});
+window.addEventListener('beforeunload', () => {
+  if (callPeer) {
+    socket.emit('call_end', { to: callPeer });
+  }
 });
 </script>
 {% endblock %}
