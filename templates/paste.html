@@ -13,7 +13,7 @@
       <div class="post-body-col">
         <a class="post-title-link" href="/paste/{{ p.id }}">{{ p.title or 'Untitled' }}</a>
         <div class="meta">
-          by <strong>{{ p.author }}</strong> &nbsp;{{ p.ts }}
+          by <strong>{{ p.author }}</strong> {% if is_admin_user(p.author) %}<span class="admin-badge">Admin</span>{% endif %} &nbsp;{{ p.ts }}
           &nbsp;·&nbsp; <code style="font-size:.8rem;color:var(--text2)">{{ p.lang }}</code>
           &nbsp;·&nbsp; {{ p.views }} views
         </div>

@@ -29,7 +29,7 @@
         <div class="tube-card-avatar">{{ v.author[0].upper() }}</div>
         <div class="tube-card-copy">
           <div class="vid-title">{{ v.title }}</div>
-          <div class="vid-meta">{{ v.author }}</div>
+          <div class="vid-meta">{{ v.author }} {% if is_admin_user(v.author) %}<span class="admin-badge">Admin</span>{% endif %}</div>
           <div class="vid-meta">{{ v.views }} views &nbsp;·&nbsp; {{ v.votes }}▲</div>
           {% if v.desc %}
           <div class="vid-meta tube-card-desc">{{ v.desc[:78] }}{% if v.desc|length > 78 %}…{% endif %}</div>

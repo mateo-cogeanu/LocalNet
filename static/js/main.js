@@ -157,9 +157,20 @@ function togglePinPicker() {
   picker.classList.toggle("pin-picker-hidden");
 }
 
+function toggleMobileNav() {
+  const nav = document.getElementById("site-nav");
+  if (!nav) return;
+  nav.classList.toggle("nav-open");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   applyTheme(localStorage.getItem("ln-theme") || "default");
   loadFont();
   loadCompact();
   renderFavoriteSites();
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 860) {
+      document.getElementById("site-nav")?.classList.remove("nav-open");
+    }
+  });
 });

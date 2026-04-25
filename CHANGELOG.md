@@ -2,6 +2,13 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2120
+
+- Smoothed the app-wide gradient system so backgrounds and surfaces feel less layered and more continuous.
+- Added subtle animated homepage blob motion behind the `⟨LocalNet⟩` hero for a more alive landing experience.
+- Reworked mobile navigation into a collapsible menu instead of relying on cramped wrapped links.
+- Added a host-managed `data/admins.txt` file and gold admin badges across the main UI and chat.
+
 ## 2026.04.25_2116
 
 - Removed the boxed-looking hero slab on the homepage so the ambient gradient flows through the `⟨LocalNet⟩` area more naturally.

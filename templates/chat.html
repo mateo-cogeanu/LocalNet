@@ -66,6 +66,10 @@ function messageAvatar(profile, sender) {
   return `<div class="avatar">${hs((sender || '?')[0].toUpperCase())}</div>`;
 }
 
+function adminBadge(profile) {
+  return profile && profile.is_admin ? `<span class="admin-badge">Admin</span>` : ``;
+}
+
 function renderMessage(d) {
   const div = document.createElement('div');
   const sys = d.sender === 'System';
@@ -75,7 +79,7 @@ function renderMessage(d) {
     <div class="msg-row">
       ${sys ? '<div class="avatar sys-avatar">!</div>' : messageAvatar(d.profile, d.sender)}
       <div class="msg-bubble">
-        <div class="msg-header"><span class="msg-sender ${sys?'sys':''}">${sys?'System':own?'You':hs(d.sender)}</span><span class="msg-time">${hs(d.ts)}</span></div>
+        <div class="msg-header"><span class="msg-sender ${sys?'sys':''}">${sys?'System':own?'You':hs(d.sender)}</span>${sys ? '' : adminBadge(d.profile)}<span class="msg-time">${hs(d.ts)}</span></div>
         <div class="msg-text">${hs(d.text)}</div>
       </div>
     </div>
@@ -93,7 +97,7 @@ function renderUserList() {
   const holder = document.getElementById('user-list');
   holder.innerHTML = onlineUsers.map(user => `
     <button class="online-user online-user-btn" data-peer="${hs(user)}" onclick="switchThreadFromButton(this)">
-      <span class="dot"></span><span>${hs(user)}</span>
+      <span class="dot"></span><span>${hs(user)}</span>${adminBadge(INITIAL_USERS.find(x => x.username === user)?.profile)}
     </button>
   `).join('');
 }
@@ -106,7 +110,7 @@ function renderDmList() {
   }
   holder.innerHTML = INITIAL_CONVERSATIONS.map(conv => `
     <button class="chat-space-btn ${activePeer === conv.peer ? 'active' : ''}" data-peer="${hs(conv.peer)}" onclick="switchThreadFromButton(this)">
-      <span>${hs(conv.peer)}</span>
+      <span>${hs(conv.peer)} ${adminBadge(conv.profile)}</span>
       <small>${hs(conv.last_text.slice(0, 28))}${conv.last_text.length > 28 ? '…' : ''}</small>
     </button>
   `).join('');

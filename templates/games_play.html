@@ -13,7 +13,7 @@
       {% endif %}
     </div>
   </div>
-  <p class="meta">by <strong>{{ g.author }}</strong> &nbsp;·&nbsp; {{ g.plays }} plays &nbsp;·&nbsp; {{ g.ts }}</p>
+  <p class="meta">by <strong>{{ g.author }}</strong> {% if is_admin_user(g.author) %}<span class="admin-badge">Admin</span>{% endif %} &nbsp;·&nbsp; {{ g.plays }} plays &nbsp;·&nbsp; {{ g.ts }}</p>
   {% if g.desc %}<p style="color:var(--text2);font-size:.9rem;margin-bottom:16px">{{ g.desc }}</p>{% endif %}
   <div class="card" style="padding:0;overflow:hidden;border-radius:10px">
     <iframe src="/uploads/games/{{ g.id }}/index.html"

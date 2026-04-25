@@ -35,7 +35,7 @@
             <div>
               <div class="forum-chip">{{ t.forum_meta.name }}</div>
               <h2>{{ t.title }}</h2>
-              <div class="meta">by <strong>{{ t.author }}</strong> · {{ t.ts }} · {{ t.votes }}▲</div>
+              <div class="meta">by <strong>{{ t.author }}</strong> {% if t.author_profile.is_admin %}<span class="admin-badge">Admin</span>{% endif %} · {{ t.ts }} · {{ t.votes }}▲</div>
             </div>
           </div>
           <a href="/forums/vote/{{ t.id }}"><button class="btn-up {% if t.voters.get(user) %}voted{% endif %}">{{ t.votes }}▲</button></a>
@@ -51,7 +51,7 @@
             <div class="avatar">{{ c.author[0].upper() }}</div>
             {% endif %}
             <div class="comment-inner">
-              <div class="meta"><strong>{{ c.author }}</strong> · {{ c.ts }}</div>
+              <div class="meta"><strong>{{ c.author }}</strong> {% if c.author_profile.is_admin %}<span class="admin-badge">Admin</span>{% endif %} · {{ c.ts }}</div>
               {% if c.body %}<div class="comment-text">{{ c.body }}</div>{% endif %}
               {% if c.image %}<img src="/uploads/images/{{ c.image }}" class="post-img" onclick="openImg(this.src)">{% endif %}
             </div>

@@ -10,7 +10,7 @@
       {% if p.author == user %}<a href="/paste/delete/{{ p.id }}" class="btn btn-ghost" style="color:var(--red)" onclick="return confirm('Delete?')">Delete</a>{% endif %}
     </div>
   </div>
-  <p class="meta">by <strong>{{ p.author }}</strong> &nbsp;{{ p.ts }} &nbsp;·&nbsp; <code style="font-size:.8rem">{{ p.lang }}</code> &nbsp;·&nbsp; {{ p.views }} views</p>
+  <p class="meta">by <strong>{{ p.author }}</strong> {% if is_admin_user(p.author) %}<span class="admin-badge">Admin</span>{% endif %} &nbsp;{{ p.ts }} &nbsp;·&nbsp; <code style="font-size:.8rem">{{ p.lang }}</code> &nbsp;·&nbsp; {{ p.views }} views</p>
   <div class="card" style="padding:0;overflow:hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border);font-size:.78rem;color:var(--text2)">
       <span>{{ p.lang }}</span>

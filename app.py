@@ -48,6 +48,7 @@ WIKI_FILE = DATA_DIR / "wiki.json"
 FORUMS_FILE = DATA_DIR / "forums.json"
 CHAT_FILE = DATA_DIR / "chat.json"
 SECRET_FILE = DATA_DIR / "secret_key.txt"
+ADMINS_FILE = DATA_DIR / "admins.txt"
 
 VIDEO_DIR = UPLOADS_DIR / "videos"
 THUMBS_DIR = UPLOADS_DIR / "thumbs"
@@ -121,6 +122,20 @@ def current_user() -> str | None:
     return session.get("user")
 
 
+def get_admins() -> set[str]:
+    if not ADMINS_FILE.exists():
+        return set()
+    return {
+        line.strip()
+        for line in ADMINS_FILE.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    }
+
+
+def is_admin_user(username: str | None) -> bool:
+    return bool(username and username in get_admins())
+
+
 def login_required(fn):
     @wraps(fn)
     def wrapped(*args, **kwargs):
@@ -173,7 +188,7 @@ def file_url(folder: str, filename: str | None) -> str | None:
 
 def public_profile(username: str | None) -> dict[str, Any]:
     if not username:
-        return {"username": "", "bio": "", "pfp": "", "banner": "", "pfp_url": None, "banner_url": None}
+        return {"username": "", "bio": "", "pfp": "", "banner": "", "pfp_url": None, "banner_url": None, "is_admin": False}
     account = get_users().get(username, {})
     return {
         "username": username,
@@ -182,6 +197,7 @@ def public_profile(username: str | None) -> dict[str, Any]:
         "banner": account.get("banner", ""),
         "pfp_url": file_url("pfps", account.get("pfp", "")),
         "banner_url": file_url("banners", account.get("banner", "")),
+        "is_admin": is_admin_user(username),
     }
 
 
@@ -192,6 +208,7 @@ def decorate_author(username: str | None) -> dict[str, Any]:
         "bio": profile["bio"],
         "pfp_url": profile["pfp_url"],
         "banner_url": profile["banner_url"],
+        "is_admin": profile["is_admin"],
     }
 
 
@@ -459,7 +476,13 @@ user_sids: dict[str, set[str]] = {}
 @app.context_processor
 def inject_globals():
     username = current_user()
-    return {"user": username, "request": request, "current_profile": public_profile(username)}
+    return {
+        "user": username,
+        "request": request,
+        "current_profile": public_profile(username),
+        "current_is_admin": is_admin_user(username),
+        "is_admin_user": is_admin_user,
+    }
 
 
 @app.route("/uploads/<path:subpath>")
@@ -1378,6 +1401,8 @@ def bootstrap_files() -> None:
     ]:
         if not path.exists():
             save_json(path, default)
+    if not ADMINS_FILE.exists():
+        ADMINS_FILE.write_text("", encoding="utf-8")
 
 
 bootstrap_files()

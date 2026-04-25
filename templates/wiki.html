@@ -12,7 +12,7 @@
     <div class="post-row" style="padding:14px 0;border-bottom:1px solid var(--border)">
       <div class="post-body-col">
         <a class="post-title-link" href="/wiki/{{ a.slug }}">{{ a.title }}</a>
-        <div class="meta">edited by <strong>{{ a.author }}</strong> &nbsp;{{ a.ts }}</div>
+        <div class="meta">edited by <strong>{{ a.author }}</strong> {% if is_admin_user(a.author) %}<span class="admin-badge">Admin</span>{% endif %} &nbsp;{{ a.ts }}</div>
       </div>
       <a href="/wiki/{{ a.slug }}/edit" class="btn btn-ghost btn-sm" style="align-self:center">Edit</a>
     </div>

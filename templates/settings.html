@@ -25,7 +25,7 @@
               <div class="profile-preview-avatar avatar">{{ user[0].upper() }}</div>
               {% endif %}
               <div>
-                <div class="toggle-label">{{ user }}</div>
+                <div class="toggle-label">{{ user }} {% if current_is_admin %}<span class="admin-badge">Admin</span>{% endif %}</div>
                 <div class="toggle-sub">{{ account.bio or 'No bio yet. Add one below.' }}</div>
               </div>
             </div>
@@ -131,7 +131,7 @@
         <div class="s-section">
           <h3>Account</h3>
           <div class="toggle-row">
-            <div><div class="toggle-label">Signed in as</div><div class="toggle-sub" style="font-family:var(--mono)">{{ user }}</div></div>
+            <div><div class="toggle-label">Signed in as</div><div class="toggle-sub" style="font-family:var(--mono)">{{ user }} {% if current_is_admin %}<span class="admin-badge">Admin</span>{% endif %}</div></div>
             <a href="/logout" class="btn btn-ghost btn-sm">Sign out</a>
           </div>
           <div class="toggle-row" style="align-items:flex-start">

@@ -39,7 +39,7 @@
       {% for v in videos %}
       <a class="mini-row" href="/tube/watch/{{ v.id }}">
         <strong>{{ v.title }}</strong>
-        <span>{{ v.author }} · {{ v.views }} views</span>
+        <span>{{ v.author }} {% if is_admin_user(v.author) %}<span class="admin-badge">Admin</span>{% endif %} · {{ v.views }} views</span>
       </a>
       {% endfor %}
       {% else %}
@@ -53,7 +53,7 @@
       {% for g in games %}
       <a class="mini-row" href="/games/play/{{ g.id }}">
         <strong>{{ g.title }}</strong>
-        <span>{{ g.author }} · {{ g.plays }} plays</span>
+        <span>{{ g.author }} {% if is_admin_user(g.author) %}<span class="admin-badge">Admin</span>{% endif %} · {{ g.plays }} plays</span>
       </a>
       {% endfor %}
       {% else %}
@@ -67,7 +67,7 @@
       {% for t in threads %}
       <a class="mini-row" href="/forums">
         <strong>{{ t.title }}</strong>
-        <span>{{ t.author }} · {{ t.comments|length }} comments · {{ t.votes }}▲</span>
+        <span>{{ t.author }} {% if is_admin_user(t.author) %}<span class="admin-badge">Admin</span>{% endif %} · {{ t.comments|length }} comments · {{ t.votes }}▲</span>
       </a>
       {% endfor %}
       {% else %}
@@ -81,7 +81,7 @@
       {% for a in wiki %}
       <a class="mini-row" href="/wiki/{{ a.slug }}">
         <strong>{{ a.title }}</strong>
-        <span>{{ a.author }} · {{ a.ts }}</span>
+        <span>{{ a.author }} {% if is_admin_user(a.author) %}<span class="admin-badge">Admin</span>{% endif %} · {{ a.ts }}</span>
       </a>
       {% endfor %}
       {% else %}
@@ -95,7 +95,7 @@
       {% for p in pastes %}
       <a class="mini-row" href="/paste/{{ p.id }}">
         <strong>{{ p.title or 'Untitled' }}</strong>
-        <span>{{ p.author }} · {{ p.lang }}</span>
+        <span>{{ p.author }} {% if is_admin_user(p.author) %}<span class="admin-badge">Admin</span>{% endif %} · {{ p.lang }}</span>
       </a>
       {% endfor %}
       {% else %}
