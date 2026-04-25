@@ -290,6 +290,19 @@ async function ensureLocalAudio() {
   return localStream;
 }
 
+async function playRemoteAudio() {
+  const remoteAudio = document.getElementById('remote-audio');
+  if (!remoteAudio || !remoteAudio.srcObject) return;
+  remoteAudio.autoplay = true;
+  remoteAudio.playsInline = true;
+  remoteAudio.muted = false;
+  try {
+    await remoteAudio.play();
+  } catch {
+    showToast('Firefox needs a direct click to start call audio. Try Accept or Call again.');
+  }
+}
+
 async function createPeerConnection(peer) {
   if (peerConnection) {
     peerConnection.close();
@@ -304,6 +317,7 @@ async function createPeerConnection(peer) {
     event.streams.forEach(stream => {
       stream.getAudioTracks().forEach(track => remoteStream.addTrack(track));
     });
+    playRemoteAudio();
   };
   peerConnection.onicecandidate = event => {
     if (event.candidate && callPeer) {
@@ -372,6 +386,7 @@ async function acceptIncomingCall() {
     incomingOffer = null;
     callState = 'active';
     socket.emit('call_answer', { to: from, accepted: true, answer });
+    playRemoteAudio();
     updateCallUi();
   } catch {
     declineIncomingCall('Microphone access is needed to answer.');

@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2159
+
+- Improved DM voice-call playback for Firefox by explicitly starting the remote audio element when the call connects and when tracks arrive.
+- Added a clearer fallback toast for browsers that still require an extra user gesture before remote call audio can play.
+
 ## 2026.04.25_2150
 
 - Added proxy-aware HTTPS support in the Flask app so LocalNet behaves correctly behind TLS and can use secure cookies for phone access.
