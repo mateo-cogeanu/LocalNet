@@ -290,6 +290,23 @@ async function ensureLocalAudio() {
   return localStream;
 }
 
+function callErrorMessage(error, action) {
+  const name = error && error.name ? error.name : '';
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+    return `Microphone access is blocked, so LocalNet can't ${action}.`;
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return `No microphone was found, so LocalNet can't ${action}.`;
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return `Your microphone is busy in another app, so LocalNet can't ${action}.`;
+  }
+  if (name === 'SecurityError') {
+    return `This browser is blocking microphone access for this page, so LocalNet can't ${action}.`;
+  }
+  return `Call setup failed while trying to ${action}. Please try once more.`;
+}
+
 async function playRemoteAudio() {
   const remoteAudio = document.getElementById('remote-audio');
   if (!remoteAudio || !remoteAudio.srcObject) return;
@@ -369,8 +386,9 @@ async function startVoiceCall() {
     const offer = await pc.createOffer({ offerToReceiveAudio: true });
     await pc.setLocalDescription(offer);
     socket.emit('call_offer', { to: activePeer, offer });
-  } catch {
-    resetCall('Microphone access is needed to start a call.');
+  } catch (error) {
+    console.error('Call start failed', error);
+    resetCall(callErrorMessage(error, 'start the call'));
   }
 }
 
@@ -388,8 +406,9 @@ async function acceptIncomingCall() {
     socket.emit('call_answer', { to: from, accepted: true, answer });
     playRemoteAudio();
     updateCallUi();
-  } catch {
-    declineIncomingCall('Microphone access is needed to answer.');
+  } catch (error) {
+    console.error('Call answer failed', error);
+    declineIncomingCall(callErrorMessage(error, 'answer the call'));
   }
 }
 

@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2201
+
+- Fixed the DM voice-call error handling so LocalNet no longer blames microphone permission for every call failure after access has already been allowed.
+- Added clearer call setup messages for blocked permission, missing mic hardware, busy devices, and generic WebRTC setup failures.
+
 ## 2026.04.25_2159
 
 - Improved DM voice-call playback for Firefox by explicitly starting the remote audio element when the call connects and when tracks arrive.
