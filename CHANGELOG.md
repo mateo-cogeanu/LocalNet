@@ -2,6 +2,12 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2127
+
+- Reworked the top navigation to feel more alive with subtle drifting light and motion instead of a static strip.
+- Removed the blue-ish hover and active feel from the menu so navigation highlights stay neutral and glassy.
+- Deepened the app-wide gradient layering and smoothing so backgrounds feel cleaner and less like compressed video.
+
 ## 2026.04.25_2120
 
 - Smoothed the app-wide gradient system so backgrounds and surfaces feel less layered and more continuous.

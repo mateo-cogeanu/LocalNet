@@ -138,13 +138,16 @@ body {
   color: var(--text);
   font-family: var(--sans);
   background:
-    radial-gradient(1200px 780px at 8% 6%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 58%),
-    radial-gradient(1100px 700px at 92% 3%, color-mix(in srgb, var(--accent2) 14%, transparent), transparent 56%),
-    radial-gradient(900px 620px at 50% 38%, rgba(255,255,255,0.025), transparent 60%),
-    radial-gradient(1200px 900px at 50% 100%, color-mix(in srgb, var(--accent2) 6%, transparent), transparent 64%),
+    radial-gradient(1800px 1200px at -4% -6%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 62%),
+    radial-gradient(1650px 1100px at 104% -8%, color-mix(in srgb, var(--accent2) 17%, transparent), transparent 60%),
+    radial-gradient(1400px 980px at 48% 34%, rgba(255,255,255,0.032), transparent 64%),
+    radial-gradient(1700px 1250px at 50% 108%, color-mix(in srgb, var(--accent2) 7%, transparent), transparent 66%),
+    radial-gradient(1150px 760px at 24% 82%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 67%),
+    linear-gradient(120deg, rgba(255,255,255,0.015), transparent 22%, rgba(255,255,255,0.012) 48%, transparent 74%),
     linear-gradient(180deg, var(--bg), var(--bg2) 38%, var(--bg3) 100%);
   min-height: 100vh;
   overflow-x: hidden;
+  background-attachment: fixed;
 }
 
 body::before,
@@ -158,18 +161,20 @@ body::after {
 
 body::before {
   background:
-    radial-gradient(800px 560px at 20% 20%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 64%),
-    radial-gradient(760px 520px at 80% 14%, color-mix(in srgb, var(--accent2) 8%, transparent), transparent 62%);
-  filter: blur(22px);
-  opacity: 0.9;
+    radial-gradient(1200px 840px at 16% 18%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 66%),
+    radial-gradient(1140px 780px at 82% 10%, color-mix(in srgb, var(--accent2) 9%, transparent), transparent 64%),
+    radial-gradient(960px 680px at 48% 58%, rgba(255,255,255,0.026), transparent 68%);
+  filter: blur(34px);
+  opacity: 0.94;
 }
 
 body::after {
   background:
-    linear-gradient(140deg, rgba(255,255,255,0.012), transparent 24%, rgba(255,255,255,0.008) 46%, transparent 68%),
-    radial-gradient(700px 520px at 50% 45%, rgba(255,255,255,0.012), transparent 70%);
+    linear-gradient(140deg, rgba(255,255,255,0.014), transparent 18%, rgba(255,255,255,0.01) 34%, transparent 54%, rgba(255,255,255,0.012) 72%, transparent 86%),
+    repeating-linear-gradient(120deg, rgba(255,255,255,0.004) 0 2px, transparent 2px 12px),
+    radial-gradient(980px 700px at 50% 45%, rgba(255,255,255,0.014), transparent 72%);
   mix-blend-mode: screen;
-  opacity: 0.45;
+  opacity: 0.32;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -186,9 +191,38 @@ nav {
   align-items: center;
   gap: 14px;
   padding: 14px 24px;
-  background: color-mix(in srgb, var(--bg2) 62%, transparent);
+  position: sticky;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg2) 72%, transparent), color-mix(in srgb, var(--bg) 58%, transparent)),
+    linear-gradient(120deg, rgba(255,255,255,0.015), transparent 22%, rgba(255,255,255,0.008) 46%, transparent 70%);
   backdrop-filter: blur(24px) saturate(130%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+}
+
+nav::before,
+nav::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+nav::before {
+  background:
+    radial-gradient(280px 120px at 12% 50%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 72%),
+    radial-gradient(320px 140px at 78% 42%, color-mix(in srgb, var(--accent2) 10%, transparent), transparent 72%);
+  opacity: 0.55;
+  filter: blur(18px);
+  animation: navGlowDrift 15s ease-in-out infinite alternate;
+}
+
+nav::after {
+  inset: -40% -10%;
+  background: linear-gradient(100deg, transparent 18%, rgba(255,255,255,0.06) 38%, transparent 58%);
+  opacity: 0.14;
+  transform: translateX(-22%);
+  animation: navSheen 18s linear infinite;
 }
 
 .mobile-nav-btn {
@@ -223,13 +257,46 @@ nav {
 }
 
 .nav-links a {
+  position: relative;
   padding: 10px 12px;
   color: var(--text2);
+  overflow: hidden;
+  isolation: isolate;
 }
 
-.nav-links a.active, .nav-links a:hover {
+.nav-links a::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.035), transparent 35%, rgba(255,255,255,0.018) 68%, transparent),
+    radial-gradient(160px 60px at var(--nav-glow-x, 30%) 50%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  z-index: -1;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
   color: var(--text);
-  background: color-mix(in srgb, var(--surface2) 60%, transparent);
+  background: color-mix(in srgb, var(--surface2) 44%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.nav-links a:hover::before,
+.nav-links a.active::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.nav-links a:nth-child(2n)::before {
+  --nav-glow-x: 66%;
+}
+
+.nav-links a:nth-child(3n)::before {
+  --nav-glow-x: 48%;
 }
 
 .user-chip {
@@ -365,18 +432,19 @@ nav {
 .home-hub::before {
   inset: 2% -8% 14%;
   background:
-    radial-gradient(560px 320px at 38% 30%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 64%),
-    radial-gradient(520px 300px at 68% 62%, color-mix(in srgb, var(--accent2) 13%, transparent), transparent 62%);
-  filter: blur(10px);
+    radial-gradient(760px 430px at 38% 30%, color-mix(in srgb, var(--accent) 19%, transparent), transparent 66%),
+    radial-gradient(700px 390px at 68% 62%, color-mix(in srgb, var(--accent2) 14%, transparent), transparent 64%),
+    radial-gradient(520px 260px at 52% 38%, rgba(255,255,255,0.026), transparent 68%);
+  filter: blur(18px);
   animation: floatBlobA 13s ease-in-out infinite alternate;
 }
 
 .home-hub::after {
   inset: 18% 10% 12%;
   background:
-    radial-gradient(420px 240px at 52% 34%, rgba(255,255,255,0.05), transparent 60%),
-    radial-gradient(380px 220px at 42% 68%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 62%);
-  filter: blur(22px);
+    radial-gradient(560px 320px at 52% 34%, rgba(255,255,255,0.052), transparent 64%),
+    radial-gradient(500px 300px at 42% 68%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 66%);
+  filter: blur(30px);
   animation: floatBlobB 16s ease-in-out infinite alternate;
 }
 
@@ -600,11 +668,13 @@ nav {
   min-height: 220px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 84%, transparent), color-mix(in srgb, var(--surface2) 78%, transparent)),
+    linear-gradient(120deg, rgba(255,255,255,0.016), transparent 26%, rgba(255,255,255,0.008) 44%, transparent 70%),
     radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.018), transparent 64%);
 }
 .accent-card {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent2) 8%, transparent)),
+    linear-gradient(120deg, rgba(255,255,255,0.018), transparent 28%, rgba(255,255,255,0.008) 52%, transparent 76%),
     radial-gradient(100% 100% at 50% 0%, rgba(255,255,255,0.02), transparent 70%);
 }
 
@@ -1308,6 +1378,26 @@ textarea {
   0% { transform: translate3d(1%, 0.5%, 0) scale(1); }
   50% { transform: translate3d(-2.5%, 2.5%, 0) scale(1.04); }
   100% { transform: translate3d(2%, -1.5%, 0) scale(0.99); }
+}
+
+@keyframes navGlowDrift {
+  0% { transform: translate3d(-3%, 0, 0) scale(1); }
+  50% { transform: translate3d(2%, 2%, 0) scale(1.04); }
+  100% { transform: translate3d(4%, -1%, 0) scale(1.02); }
+}
+
+@keyframes navSheen {
+  0% { transform: translateX(-28%) skewX(-10deg); }
+  100% { transform: translateX(28%) skewX(-10deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  nav::before,
+  nav::after,
+  .home-hub::before,
+  .home-hub::after {
+    animation: none;
+  }
 }
 
 #lightbox {
