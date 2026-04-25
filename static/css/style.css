@@ -420,32 +420,59 @@ nav::after {
   isolation: isolate;
 }
 
-.home-hub::before,
-.home-hub::after {
-  content: "";
+.hub-blobs {
   position: absolute;
-  inset: 0;
+  inset: -12% -6% 4%;
+  overflow: hidden;
   pointer-events: none;
-  z-index: -1;
+  z-index: -2;
+  filter: saturate(110%);
 }
 
-.home-hub::before {
-  inset: 2% -8% 14%;
-  background:
-    radial-gradient(760px 430px at 38% 30%, color-mix(in srgb, var(--accent) 19%, transparent), transparent 66%),
-    radial-gradient(700px 390px at 68% 62%, color-mix(in srgb, var(--accent2) 14%, transparent), transparent 64%),
-    radial-gradient(520px 260px at 52% 38%, rgba(255,255,255,0.026), transparent 68%);
-  filter: blur(18px);
-  animation: floatBlobA 13s ease-in-out infinite alternate;
+.hub-blob {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  mix-blend-mode: screen;
 }
 
-.home-hub::after {
-  inset: 18% 10% 12%;
+.hub-blob-a {
+  left: 8%;
+  top: 10%;
+  width: 34rem;
+  height: 22rem;
   background:
-    radial-gradient(560px 320px at 52% 34%, rgba(255,255,255,0.052), transparent 64%),
-    radial-gradient(500px 300px at 42% 68%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 66%);
-  filter: blur(30px);
-  animation: floatBlobB 16s ease-in-out infinite alternate;
+    radial-gradient(circle at 34% 40%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 58%),
+    radial-gradient(circle at 66% 60%, rgba(255,255,255,0.08), transparent 65%);
+  filter: blur(26px);
+  opacity: 0.9;
+  animation: hubBlobA 15s ease-in-out infinite alternate;
+}
+
+.hub-blob-b {
+  right: 10%;
+  top: 2%;
+  width: 28rem;
+  height: 20rem;
+  background:
+    radial-gradient(circle at 56% 42%, color-mix(in srgb, var(--accent2) 24%, transparent), transparent 56%),
+    radial-gradient(circle at 40% 62%, rgba(255,255,255,0.06), transparent 66%);
+  filter: blur(24px);
+  opacity: 0.84;
+  animation: hubBlobB 18s ease-in-out infinite alternate;
+}
+
+.hub-blob-c {
+  left: 34%;
+  bottom: 4%;
+  width: 24rem;
+  height: 16rem;
+  background:
+    radial-gradient(circle at 52% 48%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 54%),
+    radial-gradient(circle at 46% 54%, color-mix(in srgb, var(--accent2) 12%, transparent), transparent 68%);
+  filter: blur(28px);
+  opacity: 0.6;
+  animation: hubBlobC 20s ease-in-out infinite alternate;
 }
 
 .hub-brand {
@@ -1391,11 +1418,28 @@ textarea {
   100% { transform: translateX(28%) skewX(-10deg); }
 }
 
+@keyframes hubBlobA {
+  0% { transform: translate3d(-3%, -2%, 0) scale(0.94); }
+  50% { transform: translate3d(6%, 4%, 0) scale(1.08); }
+  100% { transform: translate3d(1%, 8%, 0) scale(0.98); }
+}
+
+@keyframes hubBlobB {
+  0% { transform: translate3d(4%, -3%, 0) scale(0.96); }
+  50% { transform: translate3d(-7%, 5%, 0) scale(1.12); }
+  100% { transform: translate3d(-3%, -1%, 0) scale(1); }
+}
+
+@keyframes hubBlobC {
+  0% { transform: translate3d(-2%, 2%, 0) scale(0.92); }
+  50% { transform: translate3d(5%, -6%, 0) scale(1.1); }
+  100% { transform: translate3d(-6%, -2%, 0) scale(1.02); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   nav::before,
   nav::after,
-  .home-hub::before,
-  .home-hub::after {
+  .hub-blob {
     animation: none;
   }
 }

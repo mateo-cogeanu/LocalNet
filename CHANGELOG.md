@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2132
+
+- Rebuilt the homepage hero blobs as separate animated layers so they visibly drift instead of blending into one mushy glow.
+- Spread the hero lighting out more cleanly so the `⟨LocalNet⟩` landing area feels more alive and less clumped together.
+
 ## 2026.04.25_2127
 
 - Reworked the top navigation to feel more alive with subtle drifting light and motion instead of a static strip.
