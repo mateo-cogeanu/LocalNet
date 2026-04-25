@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Forums — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wide forums-layout">
+  <div>
+    <div class="page-header">
+      <h1>⟨LocalNet⟩ Forums</h1>
+    </div>
+    {% if threads %}
+    {% for t in threads %}
+    <div class="card forum-thread">
+      <div class="forum-top">
+        <div>
+          <h2>{{ t.title }}</h2>
+          <div class="meta">by <strong>{{ t.author }}</strong> · {{ t.ts }} · {{ t.votes }}▲</div>
+        </div>
+        <a href="/forums/vote/{{ t.id }}"><button class="btn-up {% if t.voters.get(user) %}voted{% endif %}">{{ t.votes }}▲</button></a>
+      </div>
+      <p class="forum-body">{{ t.body }}</p>
+      {% if t.comments %}
+      <div class="forum-comments">
+        {% for c in t.comments %}
+        <div class="comment">
+          <div class="avatar">{{ c.author[0].upper() }}</div>
+          <div class="comment-inner">
+            <div class="meta"><strong>{{ c.author }}</strong> · {{ c.ts }}</div>
+            {% if c.body %}<div class="comment-text">{{ c.body }}</div>{% endif %}
+            {% if c.image %}<img src="/uploads/images/{{ c.image }}" class="post-img" onclick="openImg(this.src)">{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <form method="post" action="/forums/comment/{{ t.id }}" enctype="multipart/form-data" class="forum-comment-form">
+        <textarea name="body" placeholder="Reply to this thread"></textarea>
+        <div class="forum-comment-actions">
+          <div class="file-drop">
+            <input type="file" name="image" accept="image/*">
+            Attach image
+          </div>
+          <button class="btn btn-accent" type="submit">Comment</button>
+        </div>
+      </form>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="inset" style="text-align:center;padding:52px;color:var(--text2)">No threads yet. Start the first conversation.</div>
+    {% endif %}
+  </div>
+
+  <div class="card thread-compose">
+    <h2>New Thread</h2>
+    <form method="post">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" required>
+      </div>
+      <div class="form-group">
+        <label>Body</label>
+        <textarea name="body" required placeholder="What do you want to talk about?"></textarea>
+      </div>
+      <button class="btn btn-accent" type="submit">Post Thread</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

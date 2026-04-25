@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ v.title }} — Tube{% endblock %}
+{% block body %}
+<div class="tube-watch-layout">
+  <div class="tube-player-col">
+    <div class="tube-video-wrap">
+      <video controls autoplay>
+        <source src="/uploads/videos/{{ v.filename }}">
+      </video>
+    </div>
+    <div style="padding:16px 20px 0">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+        <div>
+          <h1 style="font-size:1.25rem;font-weight:700;line-height:1.3">{{ v.title }}</h1>
+          <div class="meta" style="margin-top:6px">by <strong>{{ v.author }}</strong> &nbsp;·&nbsp; {{ v.views }} views &nbsp;·&nbsp; {{ v.ts }}</div>
+        </div>
+        <div>
+          <a href="/tube/vote/{{ v.id }}">
+            <button class="btn-up {% if v.voters.get(user) %}voted{% endif %}" style="margin-top:4px">{{ v.votes }}▲</button>
+          </a>
+          {% if v.author == user %}
+          <a href="/tube/edit/{{ v.id }}" class="btn btn-ghost btn-sm" style="margin-top:6px">Edit</a>
+          {% endif %}
+        </div>
+      </div>
+      {% if v.desc %}<hr><p style="white-space:pre-wrap;line-height:1.75;color:var(--text2);font-size:.9rem;padding-bottom:4px">{{ v.desc }}</p>{% endif %}
+      <hr>
+      <h2 style="font-size:.85rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">{{ v.comments|length }} Comments</h2>
+      {% if v.comments %}
+      <div class="card" style="padding:4px 20px;margin-bottom:0">
+        {% for c in v.comments %}
+        <div class="comment">
+          <div class="avatar">{{ c.author[0].upper() }}</div>
+          <div class="comment-inner">
+            <div class="meta"><strong>{{ c.author }}</strong> &nbsp;{{ c.ts }}</div>
+            {% if c.body %}<div class="comment-text">{{ c.body }}</div>{% endif %}
+            {% if c.image %}<img src="/uploads/images/{{ c.image }}" class="post-img" style="max-height:220px;margin-top:8px" onclick="openImg(this.src)">{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="meta" style="margin-bottom:16px">No comments yet — be the first!</p>
+      {% endif %}
+      <div class="inset" style="margin:16px 0 28px">
+        <h3 style="margin-bottom:14px;font-size:.88rem">Leave a Comment</h3>
+        <form method="post" enctype="multipart/form-data">
+          <div class="form-group"><textarea name="body" placeholder="Write a comment"></textarea></div>
+          <div class="form-group">
+            <label>Attach image (optional)</label>
+            <div class="file-drop"><input type="file" name="image" id="cmt-in" accept="image/*"> Click or drag & drop</div>
+            <div class="file-preview" id="cmt-prev"><img src=""></div>
+            <div class="file-name" id="cmt-name"></div>
+          </div>
+          <button class="btn btn-accent" type="submit">Post Comment</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="tube-sidebar">
+    <h3 style="color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;padding:0 4px">More Videos</h3>
+    <div>
+    {% for r in related %}
+    <a href="/tube/watch/{{ r.id }}" class="video-card video-card-sm">
+      <div class="vid-thumb vid-thumb-sm">
+        {% if r.thumbnail %}<img src="/uploads/thumbs/{{ r.thumbnail }}" style="width:100%;height:100%;object-fit:cover">
+        {% else %}<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>{% endif %}
+      </div>
+      <div class="vid-info"><div class="vid-title">{{ r.title }}</div><div class="vid-meta">{{ r.author }}</div></div>
+    </a>
+    {% endfor %}
+    </div>
+  </div>
+</div>
+<script>document.addEventListener('DOMContentLoaded', () => initDrop('cmt-in','cmt-prev','cmt-name'));</script>
+{% endblock %}

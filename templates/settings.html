@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Settings — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="page-header"><h1>Settings</h1></div>
+  {% if message %}<div class="success-box">{{ message }}</div>{% endif %}
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <div class="settings-layout">
+    <div class="s-nav">
+      <button class="s-nav-btn active" data-tab="themes" onclick="showTab('themes')">Themes</button>
+      <button class="s-nav-btn" data-tab="display" onclick="showTab('display')">Display</button>
+      <button class="s-nav-btn" data-tab="account" onclick="showTab('account')">Account</button>
+    </div>
+    <div>
+      <!-- THEMES -->
+      <div class="s-panel active" id="panel-themes">
+        <div class="s-section">
+          <h3>Dark Themes</h3>
+          <div class="theme-grid">
+            <div class="theme-swatch" data-theme="default" onclick="applyTheme('default');showToast('Theme: Dark')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#0d1117,#161b22);border:1px solid #2d333b"></div>
+              <div class="swatch-name">Dark</div>
+            </div>
+            <div class="theme-swatch" data-theme="oled" onclick="applyTheme('oled');showToast('Theme: OLED Black')">
+              <div class="swatch-bar" style="background:#000;border:1px solid #1e1e1e"></div>
+              <div class="swatch-name">OLED</div>
+            </div>
+            <div class="theme-swatch" data-theme="green" onclick="applyTheme('green');showToast('Theme: Green')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#03080a,#0d1f18);border:1px solid #1a3328"></div>
+              <div class="swatch-name" style="color:#3fb950">Green</div>
+            </div>
+            <div class="theme-swatch" data-theme="red" onclick="applyTheme('red');showToast('Theme: Red')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#0a0305,#1f0d10);border:1px solid #331a1e"></div>
+              <div class="swatch-name" style="color:#e5534b">Red</div>
+            </div>
+            <div class="theme-swatch" data-theme="blue" onclick="applyTheme('blue');showToast('Theme: Blue')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#030610,#0d1530);border:1px solid #1a2550"></div>
+              <div class="swatch-name" style="color:#539bf5">Blue</div>
+            </div>
+          </div>
+        </div>
+        <div class="s-section">
+          <h3>Light Themes</h3>
+          <div class="theme-grid">
+            <div class="theme-swatch" data-theme="white" onclick="applyTheme('white');showToast('Theme: Light')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#f6f8fa,#fff);border:1px solid #d0d7de"></div>
+              <div class="swatch-name" style="color:#1f2328">Light</div>
+            </div>
+            <div class="theme-swatch" data-theme="white-green" onclick="applyTheme('white-green');showToast('Theme: Light Green')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0"></div>
+              <div class="swatch-name" style="color:#16a34a">L. Green</div>
+            </div>
+            <div class="theme-swatch" data-theme="white-red" onclick="applyTheme('white-red');showToast('Theme: Light Red')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#fff5f5,#fee2e2);border:1px solid #fecaca"></div>
+              <div class="swatch-name" style="color:#dc2626">L. Red</div>
+            </div>
+            <div class="theme-swatch" data-theme="white-blue" onclick="applyTheme('white-blue');showToast('Theme: Light Blue')">
+              <div class="swatch-bar" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe"></div>
+              <div class="swatch-name" style="color:#2563eb">L. Blue</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- DISPLAY -->
+      <div class="s-panel" id="panel-display">
+        <div class="s-section">
+          <h3>Display</h3>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Compact Mode</div><div class="toggle-sub">Reduces padding throughout the UI</div></div>
+            <label class="toggle"><input type="checkbox" id="tog-compact" onchange="applyCompact(this.checked);showToast(this.checked?'Compact on':'Compact off')"><span class="t-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Font Size</div><div class="toggle-sub">Base size for all text</div></div>
+            <select id="font-sel" onchange="applyFont(this.value);showToast('Font '+this.value+'px')" style="width:auto;margin:0">
+              <option value="14">Small 14px</option>
+              <option value="16" selected>Default 16px</option>
+              <option value="18">Large 18px</option>
+              <option value="20">X-Large 20px</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- ACCOUNT -->
+      <div class="s-panel" id="panel-account">
+        <div class="s-section">
+          <h3>Account</h3>
+          <div class="toggle-row">
+            <div><div class="toggle-label">Signed in as</div><div class="toggle-sub" style="font-family:var(--mono)">{{ user }}</div></div>
+            <a href="/logout" class="btn btn-ghost btn-sm">Sign out</a>
+          </div>
+          <div class="toggle-row" style="align-items:flex-start">
+            <div>
+              <div class="toggle-label">Two-Factor Authentication</div>
+              <div class="toggle-sub">
+                {% if two_factor_enabled %}
+                Enabled with authenticator app codes.
+                {% else %}
+                Add a 6-digit authenticator code on sign in.
+                {% endif %}
+              </div>
+            </div>
+            {% if two_factor_enabled %}
+            <form method="post">
+              <input type="hidden" name="action" value="disable_2fa">
+              <button class="btn btn-ghost btn-sm" type="submit">Disable 2FA</button>
+            </form>
+            {% else %}
+            <form method="post">
+              <input type="hidden" name="action" value="setup_2fa">
+              <button class="btn btn-accent btn-sm" type="submit">Start Setup</button>
+            </form>
+            {% endif %}
+          </div>
+          {% if secret %}
+          <div class="inset" style="margin-top:16px">
+            <div class="form-group">
+              <label>Authenticator secret</label>
+              <input type="text" value="{{ secret }}" readonly>
+            </div>
+            <div class="form-group">
+              <label>Provisioning URI</label>
+              <textarea readonly style="min-height:92px">{{ provisioning_uri }}</textarea>
+            </div>
+            <form method="post">
+              <input type="hidden" name="action" value="confirm_2fa">
+              <div class="form-group">
+                <label>Verification code</label>
+                <input type="text" name="otp" inputmode="numeric" pattern="[0-9]*" placeholder="123456" required>
+              </div>
+              <button class="btn btn-accent" type="submit">Confirm 2FA</button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+        <div class="s-section">
+          <h3>Storage</h3>
+          <p style="color:var(--text2);font-size:.87rem;line-height:1.7">Data is stored in <code>data</code> as JSON files. Videos and images are in <code>uploads</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const t = localStorage.getItem('ln-theme') || 'default';
+  document.querySelectorAll('.theme-swatch').forEach(s => s.classList.toggle('selected', s.dataset.theme === t));
+  loadFont(); loadCompact();
+});
+</script>
+{% endblock %}

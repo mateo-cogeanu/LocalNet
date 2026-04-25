@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Upload Game — Games{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:680px">
+  <div class="page-header">
+    <h1>Upload Game</h1>
+    <a href="/games" class="btn btn-ghost">Back</a>
+  </div>
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <div class="inset">
+    <form method="post" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" required autofocus placeholder="Game title">
+      </div>
+      <div class="form-group">
+        <label>Description <span style="color:var(--text2)">(optional)</span></label>
+        <textarea name="desc" placeholder="Describe the game, controls, etc."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Game file <span style="color:var(--text2)">(HTML5 zip or single .html)</span></label>
+        <div class="file-drop">
+          <input type="file" name="game" id="game-in" accept=".zip,.html" required>
+          Click or drag & drop
+        </div>
+        <div class="file-name" id="game-name"></div>
+      </div>
+      <div class="form-group">
+        <label>Cover image <span style="color:var(--text2)">(optional)</span></label>
+        <div class="file-drop">
+          <input type="file" name="cover" id="cover-in" accept="image/*">
+          Click or drag & drop
+        </div>
+        <div class="file-preview" id="cover-prev"><img src=""></div>
+        <div class="file-name" id="cover-name"></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-accent" type="submit">Upload</button>
+        <a href="/games" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  initDrop('cover-in','cover-prev','cover-name');
+  document.getElementById('game-in').addEventListener('change', function(){
+    document.getElementById('game-name').textContent = this.files[0]?.name || '';
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Paste — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="page-header">
+    <h1>⟨LocalNet⟩ Paste</h1>
+    <a href="/paste/new" class="btn btn-accent">New Paste</a>
+  </div>
+  {% if pastes %}
+  <div class="card" style="padding:4px 20px;margin-bottom:0">
+    {% for p in pastes %}
+    <div class="post-row" style="padding:14px 0;border-bottom:1px solid var(--border)">
+      <div class="post-body-col">
+        <a class="post-title-link" href="/paste/{{ p.id }}">{{ p.title or 'Untitled' }}</a>
+        <div class="meta">
+          by <strong>{{ p.author }}</strong> &nbsp;{{ p.ts }}
+          &nbsp;·&nbsp; <code style="font-size:.8rem;color:var(--text2)">{{ p.lang }}</code>
+          &nbsp;·&nbsp; {{ p.views }} views
+        </div>
+        <div class="post-preview" style="font-family:var(--mono);font-size:.8rem">{{ p.body[:120] }}{% if p.body|length > 120 %}…{% endif %}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="inset" style="text-align:center;padding:52px;color:var(--text2)">
+    No pastes yet — <a href="/paste/new">create the first one</a>!
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

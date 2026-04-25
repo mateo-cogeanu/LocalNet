@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Tube — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wide">
+  <div class="page-header">
+    <h1>⟨LocalNet⟩ Tube</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="sort-tabs">
+        <button class="sort-tab {% if sort=='new' %}active{% endif %}" onclick="location.href='/tube?sort=new'">New</button>
+        <button class="sort-tab {% if sort=='top' %}active{% endif %}" onclick="location.href='/tube?sort=top'">Top</button>
+        <button class="sort-tab {% if sort=='views' %}active{% endif %}" onclick="location.href='/tube?sort=views'">Most Viewed</button>
+      </div>
+      <a href="/tube/upload" class="btn btn-accent">Upload</a>
+    </div>
+  </div>
+  {% if videos %}
+  <div class="video-grid">
+    {% for v in videos %}
+    <div class="video-card">
+      <div class="vid-thumb">
+        <a href="/tube/watch/{{ v.id }}" class="media-link">
+        {% if v.thumbnail %}
+        <img src="/uploads/thumbs/{{ v.thumbnail }}" style="width:100%;height:100%;object-fit:cover">
+        {% else %}
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        {% endif %}
+        </a>
+      </div>
+      <div class="vid-info">
+        <div class="vid-title">{{ v.title }}</div>
+        <div class="vid-meta">{{ v.author }} &nbsp;·&nbsp; {{ v.views }} views &nbsp;·&nbsp; {{ v.votes }}▲</div>
+        <div class="vid-meta" style="margin-top:3px">{{ v.desc[:72] }}{% if v.desc|length > 72 %}…{% endif %}</div>
+        <div class="card-actions">
+          <a href="/tube/watch/{{ v.id }}" class="btn btn-ghost btn-sm">Open Video</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="inset" style="text-align:center;padding:52px;color:var(--text2)">
+    No videos yet — <a href="/tube/upload">upload the first one</a>!
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

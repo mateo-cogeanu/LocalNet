@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Edit Video — Tube{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:680px">
+  <div class="page-header">
+    <h1>Edit Video</h1>
+    <a href="/tube/watch/{{ v.id }}" class="btn btn-ghost">Cancel</a>
+  </div>
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <div class="inset">
+    <form method="post">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" value="{{ v.title }}" required autofocus>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="desc">{{ v.desc }}</textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-accent" type="submit">Save</button>
+        <a href="/tube/delete/{{ v.id }}" class="btn btn-ghost" style="color:var(--red)" onclick="return confirm('Delete this video?')">Delete</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

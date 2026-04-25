@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Wiki — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="page-header">
+    <h1>⟨LocalNet⟩ Wiki</h1>
+    <a href="/wiki/new/edit" class="btn btn-accent">New Article</a>
+  </div>
+  {% if articles %}
+  <div class="card" style="padding:4px 20px;margin-bottom:0">
+    {% for a in articles %}
+    <div class="post-row" style="padding:14px 0;border-bottom:1px solid var(--border)">
+      <div class="post-body-col">
+        <a class="post-title-link" href="/wiki/{{ a.slug }}">{{ a.title }}</a>
+        <div class="meta">edited by <strong>{{ a.author }}</strong> &nbsp;{{ a.ts }}</div>
+      </div>
+      <a href="/wiki/{{ a.slug }}/edit" class="btn btn-ghost btn-sm" style="align-self:center">Edit</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="inset" style="text-align:center;padding:52px;color:var(--text2)">
+    No articles yet — <a href="/wiki/new/edit">write the first one</a>!
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

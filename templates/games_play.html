@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ g.title }} — Games{% endblock %}
+{% block body %}
+<div class="wrap" style="max-width:960px">
+  <div class="page-header">
+    <h1>{{ g.title }}</h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a href="/games/vote/{{ g.id }}">
+        <button class="btn-up {% if g.voters.get(user) %}voted{% endif %}">{{ g.votes }}▲</button>
+      </a>
+      {% if g.author == user %}
+      <a href="/games/delete/{{ g.id }}" class="btn btn-ghost" style="color:var(--red)" onclick="return confirm('Delete this game?')">Delete</a>
+      {% endif %}
+    </div>
+  </div>
+  <p class="meta">by <strong>{{ g.author }}</strong> &nbsp;·&nbsp; {{ g.plays }} plays &nbsp;·&nbsp; {{ g.ts }}</p>
+  {% if g.desc %}<p style="color:var(--text2);font-size:.9rem;margin-bottom:16px">{{ g.desc }}</p>{% endif %}
+  <div class="card" style="padding:0;overflow:hidden;border-radius:10px">
+    <iframe src="/uploads/games/{{ g.id }}/index.html"
+            style="width:100%;height:600px;border:none;display:block;background:#000"
+            allowfullscreen
+            id="game-frame"></iframe>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:12px">
+    <button class="btn btn-ghost" onclick="document.getElementById('game-frame').requestFullscreen()">⛶ Fullscreen</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('game-frame').src+=''">↺ Restart</button>
+  </div>
+  <a href="/games" class="meta" style="display:inline-block;margin-top:20px">← All Games</a>
+</div>
+{% endblock %}

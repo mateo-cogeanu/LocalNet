@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Chat — ⟨LocalNet⟩{% endblock %}
+{% block head %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+{% endblock %}
+{% block body %}
+<div class="chat-wrap">
+  <div class="chat-sidebar">
+    <div class="sidebar-title">Online</div>
+    <div id="user-list"></div>
+  </div>
+  <div class="chat-main">
+    <div class="chat-header">
+      <strong>⟨LocalNet⟩ Chat</strong>
+      <span style="color:var(--text2);font-size:.83rem;margin-left:8px"><span id="cnt">0</span> online</span>
+    </div>
+    <div class="chat-messages" id="msgs"></div>
+    <div class="chat-input">
+      <input type="text" id="msg-in" placeholder="Type a message — Enter to send" autocomplete="off">
+      <button class="btn btn-accent" onclick="send()">Send</button>
+    </div>
+  </div>
+</div>
+<script>
+const ME = "{{ user }}";
+const socket = io();
+socket.on('connect', () => socket.emit('join', { username: ME }));
+socket.on('message', d => {
+  const box = document.getElementById('msgs');
+  const div = document.createElement('div');
+  const sys = d.sender === 'System', own = d.sender === ME;
+  div.className = 'msg' + (own ? ' own' : '');
+  div.innerHTML = `<div class="msg-header"><span class="msg-sender ${sys?'sys':''}">${sys?'System':own?'You':hs(d.sender)}</span><span class="msg-time">${d.ts}</span></div><div class="msg-text">${hs(d.text)}</div>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+});
+socket.on('userlist', u => {
+  document.getElementById('user-list').innerHTML = u.map(x => `<div class="online-user"><span class="dot"></span>${hs(x)}</div>`).join('');
+  document.getElementById('cnt').textContent = u.length;
+});
+function send() {
+  const el = document.getElementById('msg-in'), t = el.value.trim();
+  if (!t) return;
+  socket.emit('send_message', { sender: ME, text: t });
+  el.value = '';
+}
+document.getElementById('msg-in').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+function hs(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
+</script>
+{% endblock %}

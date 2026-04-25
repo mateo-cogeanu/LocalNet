@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wide">
+  <section class="home-hub">
+    <div class="hub-brand">⟨LocalNet⟩</div>
+    <p class="hub-sub">Your local internet for videos, games, forums, wiki pages, code pastes, and live chat.</p>
+    <div class="hub-actions">
+      <a href="/tube" class="btn btn-accent">Open Tube</a>
+      <a href="/games" class="btn btn-ghost">Open Games</a>
+      <a href="/chat" class="btn btn-ghost">Open Chat</a>
+    </div>
+    <div class="hub-stats">
+      <div class="stat-pill"><strong>{{ counts.videos }}</strong><span>Videos</span></div>
+      <div class="stat-pill"><strong>{{ counts.games }}</strong><span>Games</span></div>
+      <div class="stat-pill"><strong>{{ counts.threads }}</strong><span>Threads</span></div>
+      <div class="stat-pill"><strong>{{ counts.articles }}</strong><span>Wiki</span></div>
+      <div class="stat-pill"><strong>{{ counts.pastes }}</strong><span>Pastes</span></div>
+    </div>
+  </section>
+
+  <section class="card pin-board">
+    <div class="section-head">
+      <h2>Pinned Favorites</h2>
+      <span class="meta">Choose the sites you want living right under ⟨LocalNet⟩.</span>
+    </div>
+    <div class="pin-picker">
+      <button class="pin-chip" type="button" data-site="tube" onclick="toggleFavoriteSite('tube')">Tube</button>
+      <button class="pin-chip" type="button" data-site="games" onclick="toggleFavoriteSite('games')">Games</button>
+      <button class="pin-chip" type="button" data-site="forums" onclick="toggleFavoriteSite('forums')">Forums</button>
+      <button class="pin-chip" type="button" data-site="wiki" onclick="toggleFavoriteSite('wiki')">Wiki</button>
+      <button class="pin-chip" type="button" data-site="paste" onclick="toggleFavoriteSite('paste')">Paste</button>
+      <button class="pin-chip" type="button" data-site="chat" onclick="toggleFavoriteSite('chat')">Chat</button>
+    </div>
+    <div id="favorite-sites" class="favorite-sites"></div>
+  </section>
+
+  <section class="dashboard-grid">
+    <div class="card section-card">
+      <div class="section-head"><h2>Latest Videos</h2><a href="/tube">See all</a></div>
+      {% if videos %}
+      {% for v in videos %}
+      <a class="mini-row" href="/tube/watch/{{ v.id }}">
+        <strong>{{ v.title }}</strong>
+        <span>{{ v.author }} · {{ v.views }} views</span>
+      </a>
+      {% endfor %}
+      {% else %}
+      <p class="empty-copy">No videos yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card section-card">
+      <div class="section-head"><h2>Latest Games</h2><a href="/games">See all</a></div>
+      {% if games %}
+      {% for g in games %}
+      <a class="mini-row" href="/games/play/{{ g.id }}">
+        <strong>{{ g.title }}</strong>
+        <span>{{ g.author }} · {{ g.plays }} plays</span>
+      </a>
+      {% endfor %}
+      {% else %}
+      <p class="empty-copy">No games yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card section-card">
+      <div class="section-head"><h2>Forum Threads</h2><a href="/forums">Open forums</a></div>
+      {% if threads %}
+      {% for t in threads %}
+      <a class="mini-row" href="/forums">
+        <strong>{{ t.title }}</strong>
+        <span>{{ t.author }} · {{ t.comments|length }} comments · {{ t.votes }}▲</span>
+      </a>
+      {% endfor %}
+      {% else %}
+      <p class="empty-copy">No threads yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card section-card">
+      <div class="section-head"><h2>Recent Wiki</h2><a href="/wiki">Open wiki</a></div>
+      {% if wiki %}
+      {% for a in wiki %}
+      <a class="mini-row" href="/wiki/{{ a.slug }}">
+        <strong>{{ a.title }}</strong>
+        <span>{{ a.author }} · {{ a.ts }}</span>
+      </a>
+      {% endfor %}
+      {% else %}
+      <p class="empty-copy">No articles yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card section-card">
+      <div class="section-head"><h2>Recent Pastes</h2><a href="/paste">Open paste</a></div>
+      {% if pastes %}
+      {% for p in pastes %}
+      <a class="mini-row" href="/paste/{{ p.id }}">
+        <strong>{{ p.title or 'Untitled' }}</strong>
+        <span>{{ p.author }} · {{ p.lang }}</span>
+      </a>
+      {% endfor %}
+      {% else %}
+      <p class="empty-copy">No pastes yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card section-card accent-card">
+      <div class="section-head"><h2>Live Chat</h2><a href="/chat">Join now</a></div>
+      <p>Drop into the real-time room, see who is online, and keep the local web humming.</p>
+    </div>
+  </section>
+</div>
+<script>document.addEventListener('DOMContentLoaded', renderFavoriteSites);</script>
+{% endblock %}
