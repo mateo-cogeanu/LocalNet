@@ -2,6 +2,10 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2116
+
+- Removed the boxed-looking hero slab on the homepage so the ambient gradient flows through the `⟨LocalNet⟩` area more naturally.
+
 ## 2026.04.25_2048
 
 - Made login sessions persistent across app restarts by storing a stable LocalNet secret key instead of generating a new one each launch.
