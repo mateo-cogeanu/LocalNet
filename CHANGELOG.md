@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_2203
+
+- Added deeper browser-side microphone diagnostics for DM calling, including raw WebRTC error details and visible audio-input counts.
+- Improved the Firefox call failure toasts so microphone issues can be distinguished from browser device-detection problems.
+
 ## 2026.04.25_2201
 
 - Fixed the DM voice-call error handling so LocalNet no longer blames microphone permission for every call failure after access has already been allowed.

@@ -290,19 +290,35 @@ async function ensureLocalAudio() {
   return localStream;
 }
 
-function callErrorMessage(error, action) {
+async function callErrorMessage(error, action) {
   const name = error && error.name ? error.name : '';
+  const detail = error && error.message ? ` (${error.message})` : '';
+  let inputsSeen = null;
+  try {
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      inputsSeen = devices.filter(device => device.kind === 'audioinput').length;
+    }
+  } catch {
+    inputsSeen = null;
+  }
   if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-    return `Microphone access is blocked, so LocalNet can't ${action}.`;
+    return `Microphone access is blocked, so LocalNet can't ${action}.${detail}`;
   }
   if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-    return `No microphone was found, so LocalNet can't ${action}.`;
+    if (inputsSeen && inputsSeen > 0) {
+      return `Firefox reported no usable microphone even though ${inputsSeen} audio input${inputsSeen === 1 ? '' : 's'} ${inputsSeen === 1 ? 'is' : 'are'} visible.${detail}`;
+    }
+    return `No microphone was found, so LocalNet can't ${action}.${detail}`;
   }
   if (name === 'NotReadableError' || name === 'TrackStartError') {
-    return `Your microphone is busy in another app, so LocalNet can't ${action}.`;
+    return `Your microphone is busy in another app, so LocalNet can't ${action}.${detail}`;
   }
   if (name === 'SecurityError') {
-    return `This browser is blocking microphone access for this page, so LocalNet can't ${action}.`;
+    return `This browser is blocking microphone access for this page, so LocalNet can't ${action}.${detail}`;
+  }
+  if (name) {
+    return `Call setup failed while trying to ${action}: ${name}${detail}`;
   }
   return `Call setup failed while trying to ${action}. Please try once more.`;
 }
@@ -388,7 +404,7 @@ async function startVoiceCall() {
     socket.emit('call_offer', { to: activePeer, offer });
   } catch (error) {
     console.error('Call start failed', error);
-    resetCall(callErrorMessage(error, 'start the call'));
+    resetCall(await callErrorMessage(error, 'start the call'));
   }
 }
 
@@ -408,7 +424,7 @@ async function acceptIncomingCall() {
     updateCallUi();
   } catch (error) {
     console.error('Call answer failed', error);
-    declineIncomingCall(callErrorMessage(error, 'answer the call'));
+    declineIncomingCall(await callErrorMessage(error, 'answer the call'));
   }
 }
 
