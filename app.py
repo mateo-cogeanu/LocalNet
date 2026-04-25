@@ -21,6 +21,7 @@ from flask import (
     Flask,
     Response,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -52,10 +53,20 @@ THUMBS_DIR = UPLOADS_DIR / "thumbs"
 IMAGES_DIR = UPLOADS_DIR / "images"
 COVERS_DIR = UPLOADS_DIR / "covers"
 GAMES_DIR = UPLOADS_DIR / "games"
+PFP_DIR = UPLOADS_DIR / "pfps"
+BANNER_DIR = UPLOADS_DIR / "banners"
 
 ALLOWED_VIDEO_EXTS = {".mp4", ".webm", ".ogv", ".mov", ".m4v"}
 ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 ALLOWED_GAME_EXTS = {".zip", ".html", ".htm"}
+
+FORUM_SECTIONS = [
+    {"slug": "general", "name": "General", "desc": "Everything local and everything else."},
+    {"slug": "showcase", "name": "Showcase", "desc": "Share projects, builds, and experiments."},
+    {"slug": "help", "name": "Help Desk", "desc": "Ask questions and help each other troubleshoot."},
+    {"slug": "games", "name": "Games Club", "desc": "Talk about uploads, scores, and what to play next."},
+]
+FORUM_LOOKUP = {forum["slug"]: forum for forum in FORUM_SECTIONS}
 
 
 def ensure_dirs() -> None:
@@ -66,6 +77,8 @@ def ensure_dirs() -> None:
         IMAGES_DIR,
         COVERS_DIR,
         GAMES_DIR,
+        PFP_DIR,
+        BANNER_DIR,
         STATIC_DIR / "css",
         STATIC_DIR / "js",
     ]:
@@ -109,11 +122,124 @@ def login_required(fn):
 
 
 def get_users() -> dict[str, dict[str, Any]]:
-    return load_json(USERS_FILE, {})
+    users = load_json(USERS_FILE, {})
+    changed = False
+    for username, account in users.items():
+        changed = ensure_account_defaults(username, account) or changed
+    if changed:
+        save_users(users)
+    return users
 
 
 def save_users(data: dict[str, dict[str, Any]]) -> None:
     save_json(USERS_FILE, data)
+
+
+def ensure_account_defaults(username: str, account: dict[str, Any]) -> bool:
+    changed = False
+    defaults = {
+        "created_at": now_utc().isoformat(),
+        "two_factor_enabled": False,
+        "two_factor_secret": "",
+        "bio": "",
+        "pfp": "",
+        "banner": "",
+    }
+    for key, value in defaults.items():
+        if key not in account:
+            account[key] = value
+            changed = True
+    if "password_hash" not in account:
+        account["password_hash"] = generate_password_hash(username)
+        changed = True
+    return changed
+
+
+def file_url(folder: str, filename: str | None) -> str | None:
+    if not filename:
+        return None
+    return f"/uploads/{folder}/{filename}"
+
+
+def public_profile(username: str | None) -> dict[str, Any]:
+    if not username:
+        return {"username": "", "bio": "", "pfp": "", "banner": "", "pfp_url": None, "banner_url": None}
+    account = get_users().get(username, {})
+    return {
+        "username": username,
+        "bio": account.get("bio", ""),
+        "pfp": account.get("pfp", ""),
+        "banner": account.get("banner", ""),
+        "pfp_url": file_url("pfps", account.get("pfp", "")),
+        "banner_url": file_url("banners", account.get("banner", "")),
+    }
+
+
+def decorate_author(username: str | None) -> dict[str, Any]:
+    profile = public_profile(username)
+    return {
+        "name": username or "",
+        "bio": profile["bio"],
+        "pfp_url": profile["pfp_url"],
+        "banner_url": profile["banner_url"],
+    }
+
+
+def ensure_thread_defaults(thread: dict[str, Any]) -> bool:
+    changed = False
+    if thread.get("subforum") not in FORUM_LOOKUP:
+        thread["subforum"] = "general"
+        changed = True
+    if "comments" not in thread:
+        thread["comments"] = []
+        changed = True
+    if "voters" not in thread:
+        thread["voters"] = {}
+        changed = True
+    return changed
+
+
+def get_chat_store() -> dict[str, Any]:
+    raw = load_json(CHAT_FILE, {"global": [], "dms": {}})
+    changed = False
+    if isinstance(raw, list):
+        raw = {"global": raw, "dms": {}}
+        changed = True
+    if "global" not in raw:
+        raw["global"] = []
+        changed = True
+    if "dms" not in raw:
+        raw["dms"] = {}
+        changed = True
+    if changed:
+        save_json(CHAT_FILE, raw)
+    return raw
+
+
+def save_chat_store(store: dict[str, Any]) -> None:
+    save_json(CHAT_FILE, store)
+
+
+def chat_thread_key(user_a: str, user_b: str) -> str:
+    return "|".join(sorted([user_a, user_b]))
+
+
+def serialize_message(message: dict[str, Any], current: str | None = None) -> dict[str, Any]:
+    sender = message.get("sender", "")
+    recipient = message.get("recipient")
+    return {
+        "sender": sender,
+        "recipient": recipient,
+        "text": message.get("text", ""),
+        "ts": message.get("ts", ""),
+        "kind": message.get("kind", "global" if not recipient else "dm"),
+        "own": sender == current,
+        "profile": decorate_author(sender),
+    }
+
+
+def latest_message_time(message: dict[str, Any]) -> str:
+    return message.get("created_at", "") or message.get("ts", "")
 
 
 def get_items(path: Path) -> list[dict[str, Any]]:
@@ -298,7 +424,13 @@ class ForumStore:
 
     @classmethod
     def load(cls) -> "ForumStore":
-        return cls(load_json(FORUMS_FILE, []))
+        threads = load_json(FORUMS_FILE, [])
+        changed = False
+        for thread in threads:
+            changed = ensure_thread_defaults(thread) or changed
+        if changed:
+            save_json(FORUMS_FILE, threads)
+        return cls(threads)
 
     def save(self) -> None:
         save_json(FORUMS_FILE, self.threads)
@@ -310,11 +442,13 @@ app.config["MAX_CONTENT_LENGTH"] = 512 * 1024 * 1024
 socketio = SocketIO(app, async_mode="threading")
 
 online_users: dict[str, str] = {}
+user_sids: dict[str, set[str]] = {}
 
 
 @app.context_processor
 def inject_globals():
-    return {"user": current_user(), "request": request}
+    username = current_user()
+    return {"user": username, "request": request, "current_profile": public_profile(username)}
 
 
 @app.route("/uploads/<path:subpath>")
@@ -411,7 +545,54 @@ def settings():
 
     if request.method == "POST":
         action = request.form.get("action", "")
-        if action == "setup_2fa":
+        if action == "update_profile":
+            bio = request.form.get("bio", "").strip()
+            pfp = save_replacement_upload(
+                request.files.get("pfp"),
+                PFP_DIR,
+                ALLOWED_IMAGE_EXTS,
+                f"{current_user()}_pfp",
+                account.get("pfp"),
+            )
+            banner = save_replacement_upload(
+                request.files.get("banner"),
+                BANNER_DIR,
+                ALLOWED_IMAGE_EXTS,
+                f"{current_user()}_banner",
+                account.get("banner"),
+            )
+            account["bio"] = bio[:300]
+            account["pfp"] = pfp or ""
+            account["banner"] = banner or ""
+            save_users(users)
+            message = "Profile updated."
+        elif action == "change_password":
+            current_password = request.form.get("current_password", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+            if not check_password_hash(account["password_hash"], current_password):
+                error = "Your current password was incorrect."
+            elif len(new_password) < 4:
+                error = "New password must be at least 4 characters."
+            elif new_password != confirm_password:
+                error = "New password confirmation did not match."
+            else:
+                account["password_hash"] = generate_password_hash(new_password)
+                save_users(users)
+                message = "Password changed."
+        elif action == "delete_account":
+            password = request.form.get("password", "")
+            confirm = request.form.get("confirm", "").strip()
+            if not check_password_hash(account["password_hash"], password):
+                error = "Password did not match your account."
+            elif confirm != current_user():
+                error = "Type your username exactly to delete the account."
+            else:
+                username = current_user()
+                remove_user_account(username)
+                session.clear()
+                return redirect(url_for("login"))
+        elif action == "setup_2fa":
             secret = urlsafe_b32_secret()
             account["two_factor_pending"] = secret
             save_users(users)
@@ -451,6 +632,7 @@ def settings():
         secret=secret,
         provisioning_uri=provisioning_uri,
         two_factor_enabled=bool(account.get("two_factor_enabled")),
+        account=account,
     )
 
 
@@ -513,6 +695,97 @@ def find_by_id(path: Path, item_id: str) -> tuple[list[dict[str, Any]], dict[str
         if item.get("id") == item_id:
             return items, item
     return items, None
+
+
+def save_replacement_upload(file_storage, dest_dir: Path, allowed_exts: set[str], prefix: str, previous: str | None = None) -> str | None:
+    filename = save_upload(file_storage, dest_dir, allowed_exts, prefix)
+    if filename and previous:
+        (dest_dir / previous).unlink(missing_ok=True)
+    return filename or previous
+
+
+def remove_user_account(username: str) -> None:
+    users = get_users()
+    account = users.pop(username, None)
+    if account:
+        if account.get("pfp"):
+            (PFP_DIR / account["pfp"]).unlink(missing_ok=True)
+        if account.get("banner"):
+            (BANNER_DIR / account["banner"]).unlink(missing_ok=True)
+        save_users(users)
+
+    videos = get_items(VIDEOS_FILE)
+    kept_videos = []
+    for video in videos:
+        if video.get("author") == username:
+            if video.get("filename"):
+                (VIDEO_DIR / video["filename"]).unlink(missing_ok=True)
+            if video.get("thumbnail"):
+                (THUMBS_DIR / video["thumbnail"]).unlink(missing_ok=True)
+            for comment in video.get("comments", []):
+                if comment.get("image"):
+                    (IMAGES_DIR / comment["image"]).unlink(missing_ok=True)
+            continue
+        if video.get("voters", {}).pop(username, None):
+            video["votes"] = max(0, int(video.get("votes", 0)) - 1)
+        filtered_comments = []
+        for comment in video.get("comments", []):
+            if comment.get("author") == username:
+                if comment.get("image"):
+                    (IMAGES_DIR / comment["image"]).unlink(missing_ok=True)
+                continue
+            filtered_comments.append(comment)
+        video["comments"] = filtered_comments
+        kept_videos.append(video)
+    save_items(VIDEOS_FILE, kept_videos)
+
+    games = get_items(GAMES_FILE)
+    kept_games = []
+    for game in games:
+        if game.get("author") == username:
+            shutil.rmtree(GAMES_DIR / game.get("id", ""), ignore_errors=True)
+            if game.get("cover"):
+                (COVERS_DIR / game["cover"]).unlink(missing_ok=True)
+            continue
+        if game.get("voters", {}).pop(username, None):
+            game["votes"] = max(0, int(game.get("votes", 0)) - 1)
+        kept_games.append(game)
+    save_items(GAMES_FILE, kept_games)
+
+    save_items(PASTES_FILE, [paste for paste in get_items(PASTES_FILE) if paste.get("author") != username])
+    save_items(WIKI_FILE, [article for article in get_items(WIKI_FILE) if article.get("author") != username])
+
+    store = ForumStore.load()
+    kept_threads = []
+    for thread in store.threads:
+        if thread.get("author") == username:
+            for comment in thread.get("comments", []):
+                if comment.get("image"):
+                    (IMAGES_DIR / comment["image"]).unlink(missing_ok=True)
+            continue
+        if thread.get("voters", {}).pop(username, None):
+            thread["votes"] = max(0, int(thread.get("votes", 0)) - 1)
+        comments = []
+        for comment in thread.get("comments", []):
+            if comment.get("author") == username:
+                if comment.get("image"):
+                    (IMAGES_DIR / comment["image"]).unlink(missing_ok=True)
+                continue
+            comments.append(comment)
+        thread["comments"] = comments
+        kept_threads.append(thread)
+    store.threads = kept_threads
+    store.save()
+
+    chat_store = get_chat_store()
+    chat_store["global"] = [msg for msg in chat_store.get("global", []) if msg.get("sender") != username]
+    filtered_dms = {}
+    for key, messages in chat_store.get("dms", {}).items():
+        if username in key.split("|"):
+            continue
+        filtered_dms[key] = [msg for msg in messages if msg.get("sender") != username]
+    chat_store["dms"] = filtered_dms
+    save_chat_store(chat_store)
 
 
 @app.route("/tube/watch/<video_id>", methods=["GET", "POST"])
@@ -842,9 +1115,13 @@ def wiki_edit(slug: str):
 @login_required
 def forums():
     store = ForumStore.load()
+    active_forum = request.args.get("forum", "all")
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         body = request.form.get("body", "").strip()
+        subforum = request.form.get("subforum", "general")
+        if subforum not in FORUM_LOOKUP:
+            subforum = "general"
         if title and body:
             store.threads.append(
                 {
@@ -852,6 +1129,7 @@ def forums():
                     "title": title,
                     "body": body,
                     "author": current_user(),
+                    "subforum": subforum,
                     "votes": 0,
                     "voters": {},
                     "comments": [],
@@ -861,9 +1139,33 @@ def forums():
                 }
             )
             store.save()
-            return redirect(url_for("forums"))
+            return redirect(url_for("forums", forum=subforum))
     store.threads.sort(key=lambda t: (t.get("updated_at", ""), t.get("votes", 0)), reverse=True)
-    return render_template("forums.html", threads=store.threads)
+    filtered = [
+        thread
+        for thread in store.threads
+        if active_forum == "all" or thread.get("subforum", "general") == active_forum
+    ]
+    counts = {forum["slug"]: 0 for forum in FORUM_SECTIONS}
+    for thread in store.threads:
+        counts[thread.get("subforum", "general")] = counts.get(thread.get("subforum", "general"), 0) + 1
+    decorated_threads = []
+    for thread in filtered:
+        item = dict(thread)
+        item["forum_meta"] = FORUM_LOOKUP.get(item.get("subforum", "general"), FORUM_LOOKUP["general"])
+        item["author_profile"] = decorate_author(item.get("author"))
+        item["comments"] = [
+            {**comment, "author_profile": decorate_author(comment.get("author"))}
+            for comment in item.get("comments", [])
+        ]
+        decorated_threads.append(item)
+    return render_template(
+        "forums.html",
+        threads=decorated_threads,
+        subforums=FORUM_SECTIONS,
+        active_forum=active_forum,
+        counts=counts,
+    )
 
 
 @app.route("/forums/vote/<thread_id>")
@@ -894,8 +1196,10 @@ def forums_comment(thread_id: str):
     image_name = save_upload(image, IMAGES_DIR, ALLOWED_IMAGE_EXTS, f"forum_{thread_id}")
     if not body and not image_name:
         return redirect(url_for("forums"))
+    target_forum = "general"
     for thread in store.threads:
         if thread.get("id") == thread_id:
+            target_forum = thread.get("subforum", "general")
             thread.setdefault("comments", []).append(
                 {
                     "author": current_user(),
@@ -907,23 +1211,78 @@ def forums_comment(thread_id: str):
             thread["updated_at"] = now_utc().isoformat()
             store.save()
             break
-    return redirect(url_for("forums"))
+    return redirect(url_for("forums", forum=target_forum))
 
 
 @app.route("/chat")
 @login_required
 def chat():
-    return render_template("chat.html")
+    username = current_user()
+    users = []
+    for other_name in sorted(get_users()):
+        if other_name == username:
+            continue
+        users.append(
+            {
+                "username": other_name,
+                "profile": public_profile(other_name),
+            }
+        )
+    store = get_chat_store()
+    conversations = []
+    for key, messages in store.get("dms", {}).items():
+        participants = key.split("|")
+        if username not in participants or not messages:
+            continue
+        peer = participants[0] if participants[1] == username else participants[1]
+        last = messages[-1]
+        conversations.append(
+            {
+                "peer": peer,
+                "profile": public_profile(peer),
+                "last_text": last.get("text", ""),
+                "last_ts": last.get("ts", ""),
+                "last_time": latest_message_time(last),
+            }
+        )
+    conversations.sort(key=lambda conv: conv["last_time"], reverse=True)
+    active_peer = request.args.get("dm", "").strip()
+    if active_peer == username or active_peer not in {user["username"] for user in users}:
+        active_peer = ""
+    return render_template("chat.html", chat_users=users, conversations=conversations, active_peer=active_peer)
+
+
+@app.route("/chat/history")
+@login_required
+def chat_history():
+    username = current_user()
+    peer = request.args.get("peer", "").strip()
+    store = get_chat_store()
+    if peer:
+        messages = store.get("dms", {}).get(chat_thread_key(username, peer), [])
+        title = f"DM with {peer}"
+        scope = "dm"
+    else:
+        messages = store.get("global", [])
+        title = "Lobby"
+        scope = "global"
+    return jsonify(
+        {
+            "scope": scope,
+            "title": title,
+            "peer": peer,
+            "messages": [serialize_message(message, username) for message in messages[-200:]],
+        }
+    )
 
 
 @socketio.on("join")
 def socket_join(data):
     username = (data or {}).get("username") or current_user() or "Guest"
     online_users[request.sid] = username
-    emit("message", {"sender": "System", "text": f"{username} joined chat.", "ts": ts_human()}, broadcast=True)
+    user_sids.setdefault(username, set()).add(request.sid)
+    emit("global_message", {"sender": "System", "text": f"{username} joined chat.", "ts": ts_human(), "kind": "system"}, broadcast=True)
     emit("userlist", sorted(set(online_users.values())), broadcast=True)
-    for msg in load_json(CHAT_FILE, [])[-50:]:
-        emit("message", msg)
 
 
 @socketio.on("send_message")
@@ -932,19 +1291,41 @@ def socket_message(data):
     text = (data or {}).get("text", "").strip()
     if not text:
         return
-    payload = {"sender": sender, "text": text[:2000], "ts": ts_human()}
-    history = load_json(CHAT_FILE, [])
-    history.append(payload)
-    history = history[-200:]
-    save_json(CHAT_FILE, history)
-    emit("message", payload, broadcast=True)
+    recipient = ((data or {}).get("recipient") or "").strip()
+    payload = {
+        "sender": sender,
+        "recipient": recipient or None,
+        "text": text[:2000],
+        "ts": ts_human(),
+        "created_at": now_utc().isoformat(),
+        "kind": "dm" if recipient else "global",
+    }
+    store = get_chat_store()
+    if recipient and recipient != sender:
+        key = chat_thread_key(sender, recipient)
+        thread = store.setdefault("dms", {}).setdefault(key, [])
+        thread.append(payload)
+        thread[:] = thread[-200:]
+        save_chat_store(store)
+        for target in {sender, recipient}:
+            for sid in user_sids.get(target, set()):
+                socketio.emit("direct_message", serialize_message(payload, target), to=sid)
+    else:
+        store.setdefault("global", []).append(payload)
+        store["global"] = store["global"][-200:]
+        save_chat_store(store)
+        emit("global_message", serialize_message(payload, sender), broadcast=True)
 
 
 @socketio.on("disconnect")
 def socket_disconnect():
     username = online_users.pop(request.sid, None)
     if username:
-        emit("message", {"sender": "System", "text": f"{username} left chat.", "ts": ts_human()}, broadcast=True)
+        if username in user_sids:
+            user_sids[username].discard(request.sid)
+            if not user_sids[username]:
+                user_sids.pop(username, None)
+        emit("global_message", {"sender": "System", "text": f"{username} left chat.", "ts": ts_human(), "kind": "system"}, broadcast=True)
     emit("userlist", sorted(set(online_users.values())), broadcast=True)
 
 

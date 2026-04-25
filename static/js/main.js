@@ -97,12 +97,12 @@ function showTab(name) {
 }
 
 const LOCALNET_SITE_MAP = {
-  tube: { label: "Tube", href: "/tube", desc: "Videos and uploads" },
-  games: { label: "Games", href: "/games", desc: "Playable local games" },
-  forums: { label: "Forums", href: "/forums", desc: "Threads and comments" },
-  wiki: { label: "Wiki", href: "/wiki", desc: "Collaborative pages" },
-  paste: { label: "Paste", href: "/paste", desc: "Snippets and code" },
-  chat: { label: "Chat", href: "/chat", desc: "Live room" },
+  tube: { label: "Tube", href: "/tube", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>` },
+  games: { label: "Games", href: "/games", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4m-2-2v4M15 11h.01M17 13h.01"/></svg>` },
+  forums: { label: "Forums", href: "/forums", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>` },
+  wiki: { label: "Wiki", href: "/wiki", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>` },
+  paste: { label: "Paste", href: "/paste", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>` },
+  chat: { label: "Chat", href: "/chat", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>` },
 };
 
 function getFavoriteSites() {
@@ -143,8 +143,8 @@ function renderFavoriteSites() {
       const site = LOCALNET_SITE_MAP[key];
       return `
         <a class="favorite-site-card" href="${site.href}">
+          <span class="favorite-site-icon">${site.icon}</span>
           <strong>${site.label}</strong>
-          <span>${site.desc}</span>
         </a>
       `;
     })

@@ -2,6 +2,15 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.25_1953
+
+- Made pinned favorites more compact so they show as small icon-and-name pills under `⟨LocalNet⟩`.
+- Added profile customization in Settings with bio, profile picture, and banner uploads plus a live-style profile preview.
+- Added password change and account deletion flows in Settings.
+- Fixed the navigation settings icon and upgraded the user chip to show the current profile picture when available.
+- Added subforums and a more polished forum browse experience with category cards and profile-aware thread/comment avatars.
+- Added direct messages to Chat alongside the shared lobby, including conversation history and online-user DM starts.
+
 ## 2026.04.25_1943
 
 - Restyled Tube and Games into a more YouTube-like browse layout with wider thumbnail cards, avatar-style author badges, and tighter metadata spacing.

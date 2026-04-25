@@ -4,15 +4,24 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 {% endblock %}
 {% block body %}
-<div class="chat-wrap">
+<div class="chat-wrap chat-wrap-wide">
   <div class="chat-sidebar">
-    <div class="sidebar-title">Online</div>
-    <div id="user-list"></div>
+    <div class="sidebar-title">Spaces</div>
+    <div class="chat-nav-list">
+      <button class="chat-space-btn active" data-peer="" onclick="switchThreadFromButton(this)">Lobby</button>
+      <div class="chat-side-label">DMs</div>
+      <div id="dm-list"></div>
+      <div class="chat-side-label">Online</div>
+      <div id="user-list"></div>
+    </div>
   </div>
   <div class="chat-main">
-    <div class="chat-header">
-      <strong>⟨LocalNet⟩ Chat</strong>
-      <span style="color:var(--text2);font-size:.83rem;margin-left:8px"><span id="cnt">0</span> online</span>
+    <div class="chat-header chat-header-stack">
+      <div>
+        <strong id="chat-title">⟨LocalNet⟩ Lobby</strong>
+        <div class="meta" id="chat-sub">Global chat for everyone on this LocalNet.</div>
+      </div>
+      <span style="color:var(--text2);font-size:.83rem"><span id="cnt">0</span> online</span>
     </div>
     <div class="chat-messages" id="msgs"></div>
     <div class="chat-input">
@@ -22,29 +31,136 @@
   </div>
 </div>
 <script>
-const ME = "{{ user }}";
+const ME = {{ user|tojson }};
+const INITIAL_USERS = {{ chat_users|tojson }};
+const INITIAL_CONVERSATIONS = {{ conversations|tojson }};
+let activePeer = {{ active_peer|tojson }};
+let onlineUsers = [];
+
 const socket = io();
 socket.on('connect', () => socket.emit('join', { username: ME }));
-socket.on('message', d => {
-  const box = document.getElementById('msgs');
-  const div = document.createElement('div');
-  const sys = d.sender === 'System', own = d.sender === ME;
-  div.className = 'msg' + (own ? ' own' : '');
-  div.innerHTML = `<div class="msg-header"><span class="msg-sender ${sys?'sys':''}">${sys?'System':own?'You':hs(d.sender)}</span><span class="msg-time">${d.ts}</span></div><div class="msg-text">${hs(d.text)}</div>`;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
+socket.on('global_message', d => {
+  if (!activePeer) appendMessage(d);
+});
+socket.on('direct_message', d => {
+  const other = d.sender === ME ? d.recipient : d.sender;
+  upsertConversation(other, d);
+  if (activePeer === other) {
+    appendMessage(d);
+  } else if (other && d.sender !== ME) {
+    showToast(`New DM from ${other}`);
+  }
 });
 socket.on('userlist', u => {
-  document.getElementById('user-list').innerHTML = u.map(x => `<div class="online-user"><span class="dot"></span>${hs(x)}</div>`).join('');
+  onlineUsers = u.filter(name => name !== ME);
+  renderUserList();
   document.getElementById('cnt').textContent = u.length;
 });
+
+function hs(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(s || '')); return d.innerHTML; }
+
+function messageAvatar(profile, sender) {
+  if (profile && profile.pfp_url) {
+    return `<img src="${hs(profile.pfp_url)}" class="avatar avatar-img" alt="${hs(sender)}">`;
+  }
+  return `<div class="avatar">${hs((sender || '?')[0].toUpperCase())}</div>`;
+}
+
+function renderMessage(d) {
+  const div = document.createElement('div');
+  const sys = d.sender === 'System';
+  const own = d.sender === ME;
+  div.className = 'msg' + (own ? ' own' : '') + (sys ? ' sys' : '');
+  div.innerHTML = `
+    <div class="msg-row">
+      ${sys ? '<div class="avatar sys-avatar">!</div>' : messageAvatar(d.profile, d.sender)}
+      <div class="msg-bubble">
+        <div class="msg-header"><span class="msg-sender ${sys?'sys':''}">${sys?'System':own?'You':hs(d.sender)}</span><span class="msg-time">${hs(d.ts)}</span></div>
+        <div class="msg-text">${hs(d.text)}</div>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function appendMessage(d) {
+  const box = document.getElementById('msgs');
+  box.appendChild(renderMessage(d));
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderUserList() {
+  const holder = document.getElementById('user-list');
+  holder.innerHTML = onlineUsers.map(user => `
+    <button class="online-user online-user-btn" data-peer="${hs(user)}" onclick="switchThreadFromButton(this)">
+      <span class="dot"></span><span>${hs(user)}</span>
+    </button>
+  `).join('');
+}
+
+function renderDmList() {
+  const holder = document.getElementById('dm-list');
+  if (!INITIAL_CONVERSATIONS.length) {
+    holder.innerHTML = `<div class="meta" style="padding:8px 0">No DMs yet. Click someone online to start one.</div>`;
+    return;
+  }
+  holder.innerHTML = INITIAL_CONVERSATIONS.map(conv => `
+    <button class="chat-space-btn ${activePeer === conv.peer ? 'active' : ''}" data-peer="${hs(conv.peer)}" onclick="switchThreadFromButton(this)">
+      <span>${hs(conv.peer)}</span>
+      <small>${hs(conv.last_text.slice(0, 28))}${conv.last_text.length > 28 ? '…' : ''}</small>
+    </button>
+  `).join('');
+}
+
+function upsertConversation(peer, message) {
+  if (!peer) return;
+  const existing = INITIAL_CONVERSATIONS.find(conv => conv.peer === peer);
+  if (existing) {
+    existing.last_text = message.text;
+    existing.last_ts = message.ts;
+    existing.last_time = message.ts;
+  } else {
+    const profile = INITIAL_USERS.find(user => user.username === peer)?.profile || {};
+    INITIAL_CONVERSATIONS.unshift({ peer, profile, last_text: message.text, last_ts: message.ts, last_time: message.ts });
+  }
+  INITIAL_CONVERSATIONS.sort((a, b) => (b.last_time || '').localeCompare(a.last_time || ''));
+  renderDmList();
+}
+
+async function loadThread() {
+  const res = await fetch(`/chat/history${activePeer ? `?peer=${encodeURIComponent(activePeer)}` : ''}`);
+  const data = await res.json();
+  const box = document.getElementById('msgs');
+  box.innerHTML = '';
+  data.messages.forEach(appendMessage);
+  document.getElementById('chat-title').textContent = activePeer ? `DM with ${activePeer}` : '⟨LocalNet⟩ Lobby';
+  document.getElementById('chat-sub').textContent = activePeer ? 'Private messages between just the two of you.' : 'Global chat for everyone on this LocalNet.';
+  document.querySelectorAll('.chat-space-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.peer === activePeer));
+}
+
+function switchThread(peer) {
+  activePeer = peer || '';
+  renderDmList();
+  loadThread();
+}
+
+function switchThreadFromButton(button) {
+  switchThread(button.dataset.peer || '');
+}
+
 function send() {
-  const el = document.getElementById('msg-in'), t = el.value.trim();
+  const el = document.getElementById('msg-in');
+  const t = el.value.trim();
   if (!t) return;
-  socket.emit('send_message', { sender: ME, text: t });
+  socket.emit('send_message', { sender: ME, text: t, recipient: activePeer || null });
   el.value = '';
 }
+
 document.getElementById('msg-in').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
-function hs(s) { const d = document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
+document.addEventListener('DOMContentLoaded', () => {
+  renderUserList();
+  renderDmList();
+  loadThread();
+});
 </script>
 {% endblock %}
