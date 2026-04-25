@@ -135,7 +135,7 @@ function renderFavoriteSites() {
     chip.classList.toggle("active", favorites.includes(chip.dataset.site));
   });
   if (!favorites.length) {
-    holder.innerHTML = `<div class="favorite-empty">Pick a few favorite sites above and they’ll live here under ⟨LocalNet⟩.</div>`;
+    holder.innerHTML = `<div class="favorite-empty">Use the pen to pin a few favorite sites right here under ⟨LocalNet⟩.</div>`;
     return;
   }
   holder.innerHTML = favorites
@@ -151,8 +151,15 @@ function renderFavoriteSites() {
     .join("");
 }
 
+function togglePinPicker() {
+  const picker = document.getElementById("pin-picker");
+  if (!picker) return;
+  picker.classList.toggle("pin-picker-hidden");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   applyTheme(localStorage.getItem("ln-theme") || "default");
   loadFont();
   loadCompact();
+  renderFavoriteSites();
 });

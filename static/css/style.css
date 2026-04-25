@@ -296,12 +296,44 @@ nav {
   font-size: 1.02rem;
 }
 
-.hub-actions {
+.hub-pins-head {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   margin-top: 22px;
+}
+
+.hub-pins-label {
+  color: var(--text2);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pin-edit-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--surface2) 58%, transparent);
+  color: var(--text2);
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+}
+
+.pin-edit-btn:hover {
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.hero-favorites {
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 56px;
 }
 
 .hub-stats {
@@ -334,14 +366,6 @@ nav {
   letter-spacing: 0.08em;
 }
 
-.pin-board {
-  margin-bottom: 22px;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding-top: 8px;
-}
-
 .pin-picker,
 .favorite-sites {
   display: flex;
@@ -350,7 +374,12 @@ nav {
 }
 
 .pin-picker {
-  margin-bottom: 16px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.pin-picker-hidden {
+  display: none;
 }
 
 .pin-chip {
@@ -370,8 +399,8 @@ nav {
 }
 
 .favorite-site-card {
-  min-width: 150px;
-  flex: 1 1 150px;
+  min-width: 148px;
+  flex: 0 1 auto;
   padding: 16px 18px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.045);
@@ -507,8 +536,11 @@ nav {
 
 .media-link {
   display: block;
-  width: 100%;
-  height: 100%;
+  color: inherit;
+}
+
+.media-link:hover .vid-title {
+  color: var(--accent);
 }
 
 .vid-thumb, .vid-thumb-sm {
@@ -521,11 +553,6 @@ nav {
 .vid-info { padding: 14px; }
 .vid-title { font-weight: 700; margin-bottom: 6px; }
 .vid-meta { color: var(--text2); font-size: 0.84rem; line-height: 1.5; }
-.card-actions {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-start;
-}
 .video-card-sm { display: grid; grid-template-columns: 128px 1fr; margin-bottom: 12px; }
 .vid-thumb-sm { aspect-ratio: auto; min-height: 74px; }
 
@@ -1006,7 +1033,7 @@ html.compact nav { padding: 10px 18px; }
     flex-direction: column;
     align-items: stretch;
   }
-  .hub-actions, .hub-stats {
+  .hub-stats {
     align-items: stretch;
   }
   .video-card-sm { grid-template-columns: 1fr; }

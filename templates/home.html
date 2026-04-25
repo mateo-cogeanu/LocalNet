@@ -5,10 +5,23 @@
   <section class="home-hub">
     <div class="hub-brand">⟨LocalNet⟩</div>
     <p class="hub-sub">Your local internet for videos, games, forums, wiki pages, code pastes, and live chat.</p>
-    <div class="hub-actions">
-      <a href="/tube" class="btn btn-accent">Open Tube</a>
-      <a href="/games" class="btn btn-ghost">Open Games</a>
-      <a href="/chat" class="btn btn-ghost">Open Chat</a>
+    <div class="hub-pins-head">
+      <div class="hub-pins-label">Pinned Favorites</div>
+      <button class="pin-edit-btn" type="button" onclick="togglePinPicker()" aria-label="Edit pinned favorites">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+        </svg>
+      </button>
+    </div>
+    <div id="favorite-sites" class="favorite-sites hero-favorites"></div>
+    <div id="pin-picker" class="pin-picker pin-picker-hidden">
+      <button class="pin-chip" type="button" data-site="tube" onclick="toggleFavoriteSite('tube')">Tube</button>
+      <button class="pin-chip" type="button" data-site="games" onclick="toggleFavoriteSite('games')">Games</button>
+      <button class="pin-chip" type="button" data-site="forums" onclick="toggleFavoriteSite('forums')">Forums</button>
+      <button class="pin-chip" type="button" data-site="wiki" onclick="toggleFavoriteSite('wiki')">Wiki</button>
+      <button class="pin-chip" type="button" data-site="paste" onclick="toggleFavoriteSite('paste')">Paste</button>
+      <button class="pin-chip" type="button" data-site="chat" onclick="toggleFavoriteSite('chat')">Chat</button>
     </div>
     <div class="hub-stats">
       <div class="stat-pill"><strong>{{ counts.videos }}</strong><span>Videos</span></div>
@@ -17,22 +30,6 @@
       <div class="stat-pill"><strong>{{ counts.articles }}</strong><span>Wiki</span></div>
       <div class="stat-pill"><strong>{{ counts.pastes }}</strong><span>Pastes</span></div>
     </div>
-  </section>
-
-  <section class="card pin-board">
-    <div class="section-head">
-      <h2>Pinned Favorites</h2>
-      <span class="meta">Choose the sites you want living right under ⟨LocalNet⟩.</span>
-    </div>
-    <div class="pin-picker">
-      <button class="pin-chip" type="button" data-site="tube" onclick="toggleFavoriteSite('tube')">Tube</button>
-      <button class="pin-chip" type="button" data-site="games" onclick="toggleFavoriteSite('games')">Games</button>
-      <button class="pin-chip" type="button" data-site="forums" onclick="toggleFavoriteSite('forums')">Forums</button>
-      <button class="pin-chip" type="button" data-site="wiki" onclick="toggleFavoriteSite('wiki')">Wiki</button>
-      <button class="pin-chip" type="button" data-site="paste" onclick="toggleFavoriteSite('paste')">Paste</button>
-      <button class="pin-chip" type="button" data-site="chat" onclick="toggleFavoriteSite('chat')">Chat</button>
-    </div>
-    <div id="favorite-sites" class="favorite-sites"></div>
   </section>
 
   <section class="dashboard-grid">
@@ -112,5 +109,4 @@
     </div>
   </section>
 </div>
-<script>document.addEventListener('DOMContentLoaded', renderFavoriteSites);</script>
 {% endblock %}

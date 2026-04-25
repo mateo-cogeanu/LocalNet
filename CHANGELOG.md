@@ -15,3 +15,5 @@ Initial version: `2026.04.25_1900`
 - Reworked the homepage into a centered `⟨LocalNet⟩` hub with pin-able favorite site shortcuts.
 - Polished the overall visual design to feel less boxy, including softer surfaces, improved branding, and consistent `⟨LocalNet⟩` naming across the main UI.
 - Added a basic `.gitignore` and prepared the project for publishing to GitHub.
+- Moved homepage pins directly into the main `⟨LocalNet⟩` hub with an SVG pen control for editing pinned sites.
+- Removed the explicit `Open Video` and `Open Game` buttons so Tube and Games cards behave like normal-sized clickable tiles again.
