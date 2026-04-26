@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1916
+
+- Added an offline wiki compatibility shim for archive-less Kiwix article links such as `/offlinewiki/content/<title>`.
+- LocalNet now inserts the active ZIM archive slug automatically for those links, fixing false not-found pages on article clicks like `List_of_states_and_territories_of_the_United_States`.
+
 ## 2026.04.26_1910
 
 - Fixed the offline wiki proxy to forward Kiwix requests using the raw incoming URL instead of rebuilding paths from Flask-decoded route pieces.
