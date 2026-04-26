@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1910
+
+- Fixed the offline wiki proxy to forward Kiwix requests using the raw incoming URL instead of rebuilding paths from Flask-decoded route pieces.
+- Improved article navigation reliability for Wikipedia pages whose links use relative titles or encoded characters, so clicking into articles no longer falls into false not-found pages.
+
 ## 2026.04.26_1145
 
 - Made the offline library detect `kiwix-serve` live instead of caching the result at app startup, so installing the server bundle no longer forces a fragile path guess.

@@ -428,6 +428,20 @@ def current_library_reader() -> dict[str, Any]:
     return state
 
 
+def offlinewiki_upstream_url() -> str:
+    raw_path = request.environ.get("RAW_URI") or request.full_path or request.path
+    path_part = raw_path.split("?", 1)[0]
+    if not path_part.startswith(KIWIX_ROOT):
+        path_part = request.path
+    suffix = path_part[len(KIWIX_ROOT):]
+    if suffix and not suffix.startswith("/"):
+        suffix = f"/{suffix}"
+    target = f"http://127.0.0.1:{current_library_reader().get('port', KIWIX_PORT)}{KIWIX_ROOT}{suffix}"
+    if request.query_string:
+        target = f"{target}?{request.query_string.decode('latin-1')}"
+    return target
+
+
 def stop_library_reader() -> None:
     state = get_library_state()
     pid = int(state.get("pid") or 0)
@@ -1124,18 +1138,14 @@ def offlinewiki_proxy(proxy_path: str):
     state = current_library_reader()
     if not process_alive(state.get("pid")):
         return Response("Offline wiki reader is not running.", status=503, mimetype="text/plain; charset=utf-8")
-    target = f"http://127.0.0.1:{state.get('port', KIWIX_PORT)}{KIWIX_ROOT}"
-    if proxy_path:
-        target = f"{target}/{proxy_path}"
-    if request.query_string:
-        target = f"{target}?{request.query_string.decode()}"
+    target = offlinewiki_upstream_url()
     try:
         upstream = urllib.request.Request(target, headers={"User-Agent": "LocalNet/1.0"})
         with urllib.request.urlopen(upstream, timeout=30) as response:
             body = response.read()
             headers = []
             for key, value in response.headers.items():
-                if key.lower() in {"content-type", "content-length", "cache-control", "etag", "last-modified"}:
+                if key.lower() in {"content-type", "content-length", "cache-control", "etag", "last-modified", "content-security-policy", "referrer-policy"}:
                     headers.append((key, value))
             return Response(body, status=response.status, headers=headers)
     except urllib.error.HTTPError as exc:
