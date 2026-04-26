@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1928
+
+- Fixed the offline wiki archive-root case so links to `/offlinewiki/content/<archive-slug>` no longer get incorrectly rewritten into `/offlinewiki/content/<archive-slug>/<archive-slug>`.
+- Restored proper Kiwix handling for archive landing pages, including the built-in redirect to that archive's `/index` page.
+
 ## 2026.04.26_1916
 
 - Added an offline wiki compatibility shim for archive-less Kiwix article links such as `/offlinewiki/content/<title>`.

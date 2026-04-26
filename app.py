@@ -441,7 +441,7 @@ def offlinewiki_upstream_url() -> str:
         content_tail = suffix[len("/content/") :]
         parts = [part for part in content_tail.split("/") if part]
         active_slug = Path(state.get("active_filename", "")).stem
-        if active_slug and len(parts) == 1:
+        if active_slug and len(parts) == 1 and parts[0] != active_slug:
             suffix = f"/content/{active_slug}/{parts[0]}"
     target = f"http://127.0.0.1:{state.get('port', KIWIX_PORT)}{KIWIX_ROOT}{suffix}"
     if request.query_string:
