@@ -75,7 +75,26 @@ ALLOWED_GAME_EXTS = {".zip", ".html", ".htm"}
 ALLOWED_AUDIO_EXTS = {".mp3", ".m4a", ".aac", ".wav", ".ogg", ".oga", ".flac", ".opus", ".webm"}
 KIWIX_PORT = int(os.environ.get("LOCALNET_KIWIX_PORT", "2462"))
 KIWIX_ROOT = "/offlinewiki"
-KIWIX_BIN = os.environ.get("LOCALNET_KIWIX_BIN") or shutil.which("kiwix-serve")
+
+
+def detect_kiwix_bin() -> str | None:
+    env_path = os.environ.get("LOCALNET_KIWIX_BIN")
+    if env_path:
+        return env_path
+    shell_path = shutil.which("kiwix-serve")
+    if shell_path:
+        return shell_path
+    candidates = [
+        Path("/Applications/Kiwix.app/Contents/MacOS/kiwix-serve"),
+        Path.home() / "Applications/Kiwix.app/Contents/MacOS/kiwix-serve",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return None
+
+
+KIWIX_BIN = detect_kiwix_bin()
 
 FORUM_SECTIONS = [
     {"slug": "general", "name": "General", "desc": "Everything local and everything else."},

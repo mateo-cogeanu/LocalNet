@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1138
+
+- Added macOS app-bundle detection for `kiwix-serve`, so LocalNet can use the binary shipped inside the Kiwix app even when Homebrew does not provide a `kiwix-tools` formula.
+- Updated the Offline Wiki Reader install hint to use the working Homebrew cask command for Kiwix on macOS.
+
 ## 2026.04.26_1132
 
 - Added an embedded Offline Wiki Reader flow so downloaded Wikipedia archives can be opened inside LocalNet instead of only being treated as files.
