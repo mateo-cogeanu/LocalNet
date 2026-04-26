@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Library — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="page-header">
+    <h1>Offline Library</h1>
+    <a href="/wiki" class="btn btn-ghost btn-sm">Open Wiki</a>
+  </div>
+
+  <div class="s-section">
+    <h3>Wikipedia Archives</h3>
+    <p class="toggle-sub">Downloaded ZIM files live here. You can fetch the archive directly and open it in Kiwix or any ZIM-compatible reader.</p>
+    {% if zim_files %}
+    <div class="admin-jobs">
+      {% for file in zim_files %}
+      <div class="admin-job-row">
+        <div>
+          <strong>{{ file.filename }}</strong>
+          <div class="toggle-sub">{{ file.size }}</div>
+        </div>
+        <div class="job-meta">
+          <a href="{{ file.url }}" class="btn btn-accent btn-sm">Download File</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="inset" style="margin-top:14px;color:var(--text2)">No ZIM files downloaded yet. Start one from Settings → Setup.</div>
+    {% endif %}
+  </div>
+
+  <div class="s-section">
+    <h3>Local Wiki Seeds</h3>
+    <p class="toggle-sub">These packs feed the built-in LocalNet wiki, so you can browse offline-style reference pages directly inside the app.</p>
+    <div class="admin-grid">
+      {% for slug, pack in wiki_packs.items() %}
+      <div class="admin-card">
+        <strong>{{ pack.name }}</strong>
+        <p class="toggle-sub">{{ pack.desc }}</p>
+        <div class="meta">{{ pack.topics|length }} pages</div>
+        <a href="/wiki" class="btn btn-ghost btn-sm">Browse Wiki</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

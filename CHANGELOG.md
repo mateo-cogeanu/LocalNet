@@ -2,6 +2,12 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1128
+
+- Removed the old seed-pack naming from the admin setup area so the offline library tools read more naturally inside LocalNet.
+- Added a real Offline Library page for downloaded Wikipedia archives, with direct file access from inside the app.
+- Added live ZIM download progress polling and progress bars in Settings so background downloads no longer look stuck or vague.
+
 ## 2026.04.26_1124
 
 - Stopped tracking runtime JSON data and uploaded media in git so user comments, uploads, and other live LocalNet content stay local to the host machine.
@@ -11,7 +17,7 @@ Initial version: `2026.04.25_1900`
 
 - Added a Notifications page with unread counts in the nav, plus notification events for DMs, likes, comments, and selected wiki/forum activity.
 - Added a new Music app with track uploads, playback, likes, comments, editing, and deletion.
-- Added an admin-only Setup tab in Settings that exposes N.O.M.A.D-style wiki seed packs and official Kiwix Wikipedia ZIM download presets with background job tracking.
+- Added an admin-only Setup tab in Settings that exposes wiki seed packs and official Kiwix Wikipedia ZIM download presets with background job tracking.
 
 ## 2026.04.25_2203
 

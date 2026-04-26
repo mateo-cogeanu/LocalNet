@@ -80,7 +80,7 @@ FORUM_SECTIONS = [
 FORUM_LOOKUP = {forum["slug"]: forum for forum in FORUM_SECTIONS}
 WIKI_PACKS = {
     "spark": {
-        "name": "N.O.M.A.D Spark",
+        "name": "Starter Seed",
         "desc": "A small starter wiki with compact offline pages.",
         "mode": "compact",
         "topics": [
@@ -93,7 +93,7 @@ WIKI_PACKS = {
         ],
     },
     "base": {
-        "name": "N.O.M.A.D Base",
+        "name": "Core Seed",
         "desc": "A balanced offline wiki with more context on each page.",
         "mode": "balanced",
         "topics": [
@@ -108,7 +108,7 @@ WIKI_PACKS = {
         ],
     },
     "atlas": {
-        "name": "N.O.M.A.D Atlas",
+        "name": "Expanded Seed",
         "desc": "A richer offline wiki set with broader seeded topics and fuller summaries.",
         "mode": "expanded",
         "topics": [
@@ -321,6 +321,18 @@ def save_download_jobs(jobs: list[dict[str, Any]]) -> None:
     save_json(DOWNLOADS_FILE, jobs)
 
 
+def format_bytes(num: int | float | None) -> str:
+    value = float(num or 0)
+    units = ["B", "KB", "MB", "GB", "TB"]
+    for unit in units:
+        if value < 1024 or unit == units[-1]:
+            if unit == "B":
+                return f"{int(value)} {unit}"
+            return f"{value:.1f} {unit}"
+        value /= 1024
+    return "0 B"
+
+
 def ensure_account_defaults(username: str, account: dict[str, Any]) -> bool:
     changed = False
     defaults = {
@@ -527,6 +539,18 @@ def html_paragraphs(text: str) -> str:
             continue
         rendered.append(f"<p>{block.replace(chr(10), '<br>')}</p>")
     return "".join(rendered) or "<p></p>"
+
+
+def human_bytes(value: int | float | None) -> str:
+    amount = float(value or 0)
+    units = ["B", "KB", "MB", "GB", "TB"]
+    idx = 0
+    while amount >= 1024 and idx < len(units) - 1:
+        amount /= 1024
+        idx += 1
+    if idx == 0:
+        return f"{int(amount)} {units[idx]}"
+    return f"{amount:.1f} {units[idx]}"
 
 
 def seed_wiki_pack(pack_slug: str, username: str) -> int:
@@ -877,6 +901,56 @@ def notifications():
     return render_template("notifications.html", notifications=items)
 
 
+@app.route("/library")
+@login_required
+def library():
+    zim_files = []
+    for path in sorted(ZIM_DIR.glob("*.zim")):
+        zim_files.append(
+            {
+                "filename": path.name,
+                "size": format_bytes(path.stat().st_size),
+                "url": url_for("library_zim_file", filename=path.name),
+            }
+        )
+    return render_template("library.html", zim_files=zim_files, wiki_packs=WIKI_PACKS)
+
+
+@app.route("/library/zim/<path:filename>")
+@login_required
+def library_zim_file(filename: str):
+    safe_name = Path(filename).name
+    return send_from_directory(ZIM_DIR, safe_name, as_attachment=True)
+
+
+@app.route("/setup/downloads")
+@login_required
+def setup_downloads():
+    if not is_admin_user(current_user()):
+        return jsonify({"error": "forbidden"}), 403
+    jobs = sorted(get_download_jobs(), key=lambda item: item.get("created_at", ""), reverse=True)
+    payload = []
+    for job in jobs:
+        total = int(job.get("bytes_total") or 0)
+        done = int(job.get("bytes_downloaded") or 0)
+        payload.append(
+            {
+                "id": job.get("id"),
+                "name": job.get("name"),
+                "filename": job.get("filename"),
+                "status": job.get("status"),
+                "size": job.get("size"),
+                "error": job.get("error", ""),
+                "bytes_downloaded": done,
+                "bytes_total": total,
+                "downloaded_label": format_bytes(done),
+                "total_label": format_bytes(total) if total else "",
+                "percent": round((done / total) * 100, 1) if total else 0,
+            }
+        )
+    return jsonify({"jobs": payload})
+
+
 @app.route("/")
 @login_required
 def home():
@@ -1013,6 +1087,15 @@ def settings():
 
     jobs = get_download_jobs()
     jobs.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+    active_downloads = False
+    for job in jobs:
+        total = int(job.get("bytes_total") or 0)
+        done = int(job.get("bytes_downloaded") or 0)
+        job["downloaded_human"] = human_bytes(done)
+        job["total_human"] = human_bytes(total) if total else ""
+        job["progress_pct"] = round((done / total) * 100, 1) if total else 0
+        if job.get("status") in {"queued", "downloading"}:
+            active_downloads = True
 
     return render_template(
         "settings.html",
@@ -1025,6 +1108,7 @@ def settings():
         wiki_packs=WIKI_PACKS,
         zim_presets=ZIM_PRESETS,
         download_jobs=jobs,
+        active_downloads=active_downloads,
     )
 
 

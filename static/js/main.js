@@ -164,6 +164,61 @@ function toggleMobileNav() {
   nav.classList.toggle("nav-open");
 }
 
+function renderAdminDownloadJobs(jobs) {
+  const holder = document.querySelector("[data-admin-downloads]");
+  if (!holder) return;
+  if (!jobs.length) {
+    holder.innerHTML = `<p class="toggle-sub">No ZIM downloads yet.</p>`;
+    return;
+  }
+  holder.innerHTML = jobs
+    .map((job) => {
+      const progress = job.bytes_total
+        ? `
+          <div class="job-progress">
+            <div class="job-progress-bar" style="width:${job.percent}%"></div>
+          </div>
+          <span class="meta">${job.percent}% · ${job.downloaded_label} / ${job.total_label}</span>
+        `
+        : job.error
+          ? `<span class="meta">${job.error}</span>`
+          : `<span class="meta">${job.downloaded_label}</span>`;
+      return `
+        <div class="admin-job-row">
+          <div>
+            <strong>${job.name}</strong>
+            <div class="toggle-sub">${job.filename}</div>
+          </div>
+          <div class="job-meta">
+            <span class="job-status status-${job.status}">${job.status}</span>
+            <span class="meta">${job.size}</span>
+            ${progress}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function pollAdminDownloadJobs() {
+  const holder = document.querySelector("[data-admin-downloads]");
+  if (!holder) return;
+  try {
+    const res = await fetch("/setup/downloads");
+    if (!res.ok) return;
+    const data = await res.json();
+    renderAdminDownloadJobs(data.jobs || []);
+  } catch {}
+}
+
+function startAdminDownloadPolling() {
+  const holder = document.querySelector("[data-admin-downloads]");
+  if (!holder) return;
+  pollAdminDownloadJobs();
+  clearInterval(window.__lnAdminDownloadsTimer);
+  window.__lnAdminDownloadsTimer = setInterval(pollAdminDownloadJobs, 1500);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   applyTheme(localStorage.getItem("ln-theme") || "default");
   loadFont();

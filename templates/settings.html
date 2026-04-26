@@ -136,7 +136,7 @@
         </div>
 
         <div class="s-section">
-          <h3>N.O.M.A.D Wiki Seeds</h3>
+          <h3>Wiki Seed Packs</h3>
           <div class="admin-grid">
             {% for slug, pack in wiki_packs.items() %}
             <form method="post" class="admin-card">
@@ -154,6 +154,9 @@
         <div class="s-section">
           <h3>Kiwix ZIM Downloads</h3>
           <p class="toggle-sub">These presets download official Wikipedia ZIM archives from Kiwix so you can stash offline knowledge on the LocalNet host machine.</p>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+            <a href="/library" class="btn btn-ghost btn-sm">Open Library</a>
+          </div>
           <div class="admin-grid">
             {% for slug, preset in zim_presets.items() %}
             <form method="post" class="admin-card">
@@ -166,7 +169,7 @@
             </form>
             {% endfor %}
           </div>
-          <div class="admin-jobs">
+          <div class="admin-jobs" id="download-jobs" data-admin-downloads>
             {% if download_jobs %}
             {% for job in download_jobs %}
             <div class="admin-job-row">
@@ -178,6 +181,9 @@
                 <span class="job-status status-{{ job.status }}">{{ job.status }}</span>
                 <span class="meta">{{ job.size }}</span>
                 {% if job.bytes_total %}
+                <div class="job-progress">
+                  <div class="job-progress-bar" style="width:{{ ((job.bytes_downloaded / job.bytes_total) * 100)|round(1) }}%"></div>
+                </div>
                 <span class="meta">{{ ((job.bytes_downloaded / job.bytes_total) * 100)|round(1) }}%</span>
                 {% elif job.error %}
                 <span class="meta">{{ job.error }}</span>
@@ -297,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFont(); loadCompact();
   initDrop('pfp-in','pfp-prev','pfp-name');
   initDrop('banner-in','banner-prev','banner-name');
+  if (window.startAdminDownloadPolling) startAdminDownloadPolling();
 });
 </script>
 {% endblock %}
