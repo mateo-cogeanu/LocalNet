@@ -8,7 +8,9 @@ import json
 import os
 import secrets
 import shutil
+import threading
 import time
+import urllib.request
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -48,6 +50,9 @@ PASTES_FILE = DATA_DIR / "pastes.json"
 WIKI_FILE = DATA_DIR / "wiki.json"
 FORUMS_FILE = DATA_DIR / "forums.json"
 CHAT_FILE = DATA_DIR / "chat.json"
+NOTIFICATIONS_FILE = DATA_DIR / "notifications.json"
+MUSIC_FILE = DATA_DIR / "music.json"
+DOWNLOADS_FILE = DATA_DIR / "downloads.json"
 SECRET_FILE = DATA_DIR / "secret_key.txt"
 ADMINS_FILE = DATA_DIR / "admins.txt"
 
@@ -56,12 +61,15 @@ THUMBS_DIR = UPLOADS_DIR / "thumbs"
 IMAGES_DIR = UPLOADS_DIR / "images"
 COVERS_DIR = UPLOADS_DIR / "covers"
 GAMES_DIR = UPLOADS_DIR / "games"
+MUSIC_DIR = UPLOADS_DIR / "music"
 PFP_DIR = UPLOADS_DIR / "pfps"
 BANNER_DIR = UPLOADS_DIR / "banners"
+ZIM_DIR = UPLOADS_DIR / "zim"
 
 ALLOWED_VIDEO_EXTS = {".mp4", ".webm", ".ogv", ".mov", ".m4v"}
 ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 ALLOWED_GAME_EXTS = {".zip", ".html", ".htm"}
+ALLOWED_AUDIO_EXTS = {".mp3", ".m4a", ".aac", ".wav", ".ogg", ".oga", ".flac", ".opus", ".webm"}
 
 FORUM_SECTIONS = [
     {"slug": "general", "name": "General", "desc": "Everything local and everything else."},
@@ -70,6 +78,93 @@ FORUM_SECTIONS = [
     {"slug": "games", "name": "Games Club", "desc": "Talk about uploads, scores, and what to play next."},
 ]
 FORUM_LOOKUP = {forum["slug"]: forum for forum in FORUM_SECTIONS}
+WIKI_PACKS = {
+    "spark": {
+        "name": "N.O.M.A.D Spark",
+        "desc": "A small starter wiki with compact offline pages.",
+        "mode": "compact",
+        "topics": [
+            ("LocalNet", "LocalNet is a self-hosted local internet hub for media, forums, chat, and offline knowledge."),
+            ("Intranet", "An intranet is a private network that brings communication, files, and shared tools into one place."),
+            ("Wikipedia", "Wikipedia is a collaborative encyclopedia that organizes articles by topic, history, and references."),
+            ("Web Browser", "A web browser opens pages, plays media, and connects people to web apps like LocalNet."),
+            ("Computer", "A computer processes information, stores files, and runs software for local and online tasks."),
+            ("Network", "A network links devices together so they can share data, messages, and services."),
+        ],
+    },
+    "base": {
+        "name": "N.O.M.A.D Base",
+        "desc": "A balanced offline wiki with more context on each page.",
+        "mode": "balanced",
+        "topics": [
+            ("LocalNet", "LocalNet is a self-hosted local internet hub for media, forums, chat, and offline knowledge.\n\nIt combines video, games, forums, personal profiles, and a wiki into one local-first social web."),
+            ("Wikipedia", "Wikipedia is a collaborative encyclopedia built from community editing.\n\nArticles usually summarize a topic, give historical context, explain key ideas, and point toward related pages."),
+            ("Internet", "The internet is a global system of connected networks.\n\nIt moves messages, web pages, video, files, and live communication between devices across many independent systems."),
+            ("Intranet", "An intranet is a private network used inside a home, school, lab, or company.\n\nIt can host chat, documentation, announcements, local streaming, and tools without depending on the public web."),
+            ("Operating System", "An operating system manages hardware, files, apps, and user sessions.\n\nIt provides the foundation that lets browsers, games, editors, and services run smoothly."),
+            ("Router", "A router connects networks and decides where traffic should go.\n\nIn a local environment it often provides Wi-Fi, DHCP, and the path between devices and internet access."),
+            ("History of the Web", "The web grew from linked hypertext documents into an ecosystem of apps, media, and social spaces.\n\nModern web software can now power live chat, voice calls, and rich local experiences."),
+            ("Digital Library", "A digital library stores articles, media, and references in a searchable format.\n\nOffline libraries are especially useful for private intranets, classrooms, and portable deployments."),
+        ],
+    },
+    "atlas": {
+        "name": "N.O.M.A.D Atlas",
+        "desc": "A richer offline wiki set with broader seeded topics and fuller summaries.",
+        "mode": "expanded",
+        "topics": [
+            ("LocalNet", "LocalNet is a self-hosted local internet hub for media, forums, chat, and offline knowledge.\n\nIt is designed to feel like a complete private web, where users can upload videos and games, talk in real time, organize knowledge, and shape the local culture of the network."),
+            ("Wikipedia", "Wikipedia is a community-built encyclopedia that organizes knowledge into linked articles.\n\nIts structure makes it useful as inspiration for offline knowledge packs because each page can stand alone while also connecting outward into a larger map of ideas."),
+            ("Internet", "The internet is a system of interconnected networks that allows devices to exchange data using shared protocols.\n\nIt supports the web, messaging, streaming, file transfer, collaboration, and many other layers of modern communication."),
+            ("Intranet", "An intranet is a private internal network used for communication, tools, and shared information.\n\nA strong intranet often includes profiles, search, media, reference material, and administrative tools that make the network feel alive and useful every day."),
+            ("Operating System", "An operating system coordinates memory, storage, devices, networking, and processes.\n\nIt creates the environment that lets browsers, local servers, media tools, and communication apps all work together."),
+            ("Router", "A router directs packets between networks and often acts as the center of a local deployment.\n\nIn many self-hosted setups it determines how phones, laptops, smart devices, and local servers discover and reach one another."),
+            ("Offline Knowledge", "Offline knowledge systems preserve useful information even when internet access is limited or intentionally absent.\n\nThey are valuable for travel, education, archiving, emergency planning, and private environments."),
+            ("Digital Library", "A digital library is a curated collection of documents, reference pages, and media.\n\nUnlike a random file dump, a good digital library is organized for browsing, search, and long-term reuse."),
+            ("Search Engine", "A search engine helps users find relevant information quickly across many pages.\n\nOn a local network, search becomes a force multiplier because it turns scattered content into a usable shared memory."),
+            ("Voice over IP", "Voice over IP carries calls as internet packets instead of traditional phone lines.\n\nModern browsers can support private voice calls directly through web standards such as WebRTC."),
+            ("WebRTC", "WebRTC is a browser technology for live audio, video, and peer-to-peer data.\n\nIt is commonly used for real-time calls because it can connect browsers directly after an app handles signaling."),
+            ("Community Moderation", "Community moderation shapes the tone and safety of a shared online space.\n\nClear rules, useful tools, and visible trust signals help a local network stay welcoming and reliable."),
+        ],
+    },
+}
+ZIM_PRESETS = {
+    "wikipedia_100_mini": {
+        "name": "Wikipedia 100 Mini",
+        "desc": "A tiny English Wikipedia sample with a compact set of pages.",
+        "size": "4.4 MB",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_100_mini_2026-04.zim",
+    },
+    "wikipedia_100_nopic": {
+        "name": "Wikipedia 100 No Pictures",
+        "desc": "A small English Wikipedia sample without images.",
+        "size": "13 MB",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_100_nopic_2026-04.zim",
+    },
+    "wikipedia_100_maxi": {
+        "name": "Wikipedia 100 With Pictures",
+        "desc": "A small English Wikipedia sample with images kept in.",
+        "size": "48 MB",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_100_maxi_2026-04.zim",
+    },
+    "wikipedia_all_mini": {
+        "name": "Wikipedia Full Mini",
+        "desc": "A large but trimmed-down English Wikipedia archive.",
+        "size": "12 GB",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_mini_2026-03.zim",
+    },
+    "wikipedia_all_nopic": {
+        "name": "Wikipedia Full No Pictures",
+        "desc": "The full English Wikipedia without images.",
+        "size": "48 GB",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_nopic_2026-03.zim",
+    },
+    "wikipedia_all_maxi": {
+        "name": "Wikipedia Full With Pictures",
+        "desc": "The biggest English Wikipedia archive with images included.",
+        "size": "115 GB",
+        "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_all_maxi_2026-02.zim",
+    },
+}
 
 
 def ensure_dirs() -> None:
@@ -80,8 +175,10 @@ def ensure_dirs() -> None:
         IMAGES_DIR,
         COVERS_DIR,
         GAMES_DIR,
+        MUSIC_DIR,
         PFP_DIR,
         BANNER_DIR,
+        ZIM_DIR,
         STATIC_DIR / "css",
         STATIC_DIR / "js",
     ]:
@@ -159,6 +256,69 @@ def get_users() -> dict[str, dict[str, Any]]:
 
 def save_users(data: dict[str, dict[str, Any]]) -> None:
     save_json(USERS_FILE, data)
+
+
+def get_notifications_store() -> dict[str, list[dict[str, Any]]]:
+    raw = load_json(NOTIFICATIONS_FILE, {})
+    return raw if isinstance(raw, dict) else {}
+
+
+def save_notifications_store(store: dict[str, list[dict[str, Any]]]) -> None:
+    save_json(NOTIFICATIONS_FILE, store)
+
+
+def user_notifications(username: str | None) -> list[dict[str, Any]]:
+    if not username:
+        return []
+    return list(get_notifications_store().get(username, []))
+
+
+def unread_notification_count(username: str | None) -> int:
+    return sum(1 for item in user_notifications(username) if not item.get("read"))
+
+
+def add_notification(username: str | None, text: str, href: str, kind: str = "general", actor: str | None = None) -> None:
+    if not username:
+        return
+    store = get_notifications_store()
+    items = store.setdefault(username, [])
+    items.insert(
+        0,
+        {
+            "id": make_id("note"),
+            "text": text,
+            "href": href,
+            "kind": kind,
+            "actor": actor or "",
+            "ts": ts_human(),
+            "created_at": now_utc().isoformat(),
+            "read": False,
+        },
+    )
+    store[username] = items[:150]
+    save_notifications_store(store)
+
+
+def mark_notifications_read(username: str, note_id: str | None = None) -> None:
+    store = get_notifications_store()
+    changed = False
+    for item in store.get(username, []):
+        if note_id and item.get("id") != note_id:
+            continue
+        if not item.get("read"):
+            item["read"] = True
+            changed = True
+    if changed:
+        save_notifications_store(store)
+
+
+def get_download_jobs() -> list[dict[str, Any]]:
+    jobs = load_json(DOWNLOADS_FILE, [])
+    return jobs if isinstance(jobs, list) else []
+
+
+def save_download_jobs(jobs: list[dict[str, Any]]) -> None:
+    save_json(DOWNLOADS_FILE, jobs)
 
 
 def ensure_account_defaults(username: str, account: dict[str, Any]) -> bool:
@@ -282,6 +442,9 @@ def make_id(prefix: str) -> str:
     return f"{prefix}_{secrets.token_hex(6)}"
 
 
+downloads_lock = threading.Lock()
+
+
 def slugify(value: str) -> str:
     cleaned = "".join(ch.lower() if ch.isalnum() else "-" for ch in value).strip("-")
     while "--" in cleaned:
@@ -364,6 +527,117 @@ def html_paragraphs(text: str) -> str:
             continue
         rendered.append(f"<p>{block.replace(chr(10), '<br>')}</p>")
     return "".join(rendered) or "<p></p>"
+
+
+def seed_wiki_pack(pack_slug: str, username: str) -> int:
+    pack = WIKI_PACKS.get(pack_slug)
+    if not pack:
+        return 0
+    articles = get_items(WIKI_FILE)
+    existing = {article.get("slug") for article in articles}
+    added = 0
+    for title, body in pack["topics"]:
+        slug = unique_slug(title, articles)
+        if slug in existing:
+            continue
+        articles.append(
+            {
+                "slug": slug,
+                "title": title,
+                "body": body,
+                "author": username,
+                "updated_at": now_utc().isoformat(),
+                "ts": ts_human(),
+            }
+        )
+        existing.add(slug)
+        added += 1
+    if added:
+        save_items(WIKI_FILE, articles)
+    return added
+
+
+def update_download_job(job_id: str, **updates: Any) -> dict[str, Any] | None:
+    with downloads_lock:
+        jobs = get_download_jobs()
+        for job in jobs:
+            if job.get("id") == job_id:
+                job.update(updates)
+                save_download_jobs(jobs)
+                return job
+    return None
+
+
+def run_zim_download(job_id: str, url: str, filename: str) -> None:
+    target = ZIM_DIR / filename
+    try:
+        update_download_job(job_id, status="downloading", started_at=now_utc().isoformat(), started_ts=ts_human())
+        req = urllib.request.Request(url, headers={"User-Agent": "LocalNet/1.0"})
+        downloaded = 0
+        total = 0
+        last_save = 0.0
+        with urllib.request.urlopen(req, timeout=60) as src, target.open("wb") as dst:
+            total = int(src.headers.get("Content-Length") or 0)
+            update_download_job(job_id, bytes_total=total)
+            while True:
+                chunk = src.read(1024 * 1024)
+                if not chunk:
+                    break
+                dst.write(chunk)
+                downloaded += len(chunk)
+                if time.monotonic() - last_save > 0.8:
+                    update_download_job(job_id, bytes_downloaded=downloaded, bytes_total=total)
+                    last_save = time.monotonic()
+        update_download_job(
+            job_id,
+            status="completed",
+            bytes_downloaded=downloaded,
+            bytes_total=total,
+            finished_at=now_utc().isoformat(),
+            finished_ts=ts_human(),
+            local_path=str(target.relative_to(APP_ROOT)),
+        )
+    except Exception as exc:
+        target.unlink(missing_ok=True)
+        update_download_job(
+            job_id,
+            status="error",
+            error=str(exc),
+            finished_at=now_utc().isoformat(),
+            finished_ts=ts_human(),
+        )
+
+
+def queue_zim_download(preset_slug: str, username: str) -> tuple[bool, str]:
+    preset = ZIM_PRESETS.get(preset_slug)
+    if not preset:
+        return False, "That ZIM preset could not be found."
+    jobs = get_download_jobs()
+    filename = Path(preset["url"]).name
+    for job in jobs:
+        if job.get("filename") == filename and job.get("status") in {"queued", "downloading"}:
+            return False, "That ZIM download is already running."
+        if job.get("filename") == filename and job.get("status") == "completed":
+            return False, "That ZIM file is already downloaded."
+    job = {
+        "id": make_id("zim"),
+        "slug": preset_slug,
+        "name": preset["name"],
+        "desc": preset["desc"],
+        "filename": filename,
+        "url": preset["url"],
+        "size": preset["size"],
+        "status": "queued",
+        "requested_by": username,
+        "ts": ts_human(),
+        "created_at": now_utc().isoformat(),
+        "bytes_downloaded": 0,
+        "bytes_total": 0,
+    }
+    jobs.insert(0, job)
+    save_download_jobs(jobs[:60])
+    threading.Thread(target=run_zim_download, args=(job["id"], preset["url"], filename), daemon=True).start()
+    return True, f"{preset['name']} download started."
 
 
 def urlsafe_b32_secret(length: int = 20) -> str:
@@ -504,6 +778,7 @@ def inject_globals():
         "current_profile": public_profile(username),
         "current_is_admin": is_admin_user(username),
         "is_admin_user": is_admin_user,
+        "notification_unread_count": unread_notification_count(username),
     }
 
 
@@ -587,18 +862,35 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/notifications", methods=["GET", "POST"])
+@login_required
+def notifications():
+    username = current_user()
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        if action == "mark_all_read":
+            mark_notifications_read(username)
+        elif action == "mark_read":
+            mark_notifications_read(username, request.form.get("note_id", "").strip())
+        return redirect(url_for("notifications"))
+    items = sorted(user_notifications(username), key=lambda item: item.get("created_at", ""), reverse=True)
+    return render_template("notifications.html", notifications=items)
+
+
 @app.route("/")
 @login_required
 def home():
     forum_threads = ForumStore.load().threads
     videos = sorted(get_items(VIDEOS_FILE), key=lambda v: v.get("created_at", ""), reverse=True)[:4]
     games = sorted(get_items(GAMES_FILE), key=lambda g: g.get("created_at", ""), reverse=True)[:4]
+    tracks = sorted(get_items(MUSIC_FILE), key=lambda t: t.get("created_at", ""), reverse=True)[:4]
     threads = sorted(forum_threads, key=lambda t: t.get("updated_at", ""), reverse=True)[:5]
     pastes = prune_expired_pastes()[:5]
     wiki = sorted(get_items(WIKI_FILE), key=lambda a: a.get("updated_at", ""), reverse=True)[:5]
     counts = {
         "videos": len(get_items(VIDEOS_FILE)),
         "games": len(get_items(GAMES_FILE)),
+        "tracks": len(get_items(MUSIC_FILE)),
         "threads": len(forum_threads),
         "articles": len(get_items(WIKI_FILE)),
         "pastes": len(prune_expired_pastes()),
@@ -607,6 +899,7 @@ def home():
         "home.html",
         videos=videos,
         games=games,
+        tracks=tracks,
         threads=threads,
         pastes=pastes,
         wiki=wiki,
@@ -700,11 +993,26 @@ def settings():
             account.pop("two_factor_pending", None)
             save_users(users)
             message = "Two-factor authentication has been disabled."
+        elif action == "seed_wiki_pack" and is_admin_user(current_user()):
+            added = seed_wiki_pack(request.form.get("pack", "").strip(), current_user())
+            if added:
+                message = f"Seeded {added} wiki pages into LocalNet."
+            else:
+                error = "That pack was empty or already seeded."
+        elif action == "download_zim" and is_admin_user(current_user()):
+            ok, msg = queue_zim_download(request.form.get("preset", "").strip(), current_user())
+            if ok:
+                message = msg
+            else:
+                error = msg
 
     pending = account.get("two_factor_pending")
     if pending and not secret:
         secret = pending
         provisioning_uri = otpauth_uri(current_user(), pending)
+
+    jobs = get_download_jobs()
+    jobs.sort(key=lambda item: item.get("created_at", ""), reverse=True)
 
     return render_template(
         "settings.html",
@@ -714,6 +1022,9 @@ def settings():
         provisioning_uri=provisioning_uri,
         two_factor_enabled=bool(account.get("two_factor_enabled")),
         account=account,
+        wiki_packs=WIKI_PACKS,
+        zim_presets=ZIM_PRESETS,
+        download_jobs=jobs,
     )
 
 
@@ -833,6 +1144,21 @@ def remove_user_account(username: str) -> None:
         kept_games.append(game)
     save_items(GAMES_FILE, kept_games)
 
+    tracks = get_items(MUSIC_FILE)
+    kept_tracks = []
+    for track in tracks:
+        if track.get("author") == username:
+            if track.get("filename"):
+                (MUSIC_DIR / track["filename"]).unlink(missing_ok=True)
+            if track.get("cover"):
+                (COVERS_DIR / track["cover"]).unlink(missing_ok=True)
+            continue
+        if track.get("voters", {}).pop(username, None):
+            track["votes"] = max(0, int(track.get("votes", 0)) - 1)
+        track["comments"] = [comment for comment in track.get("comments", []) if comment.get("author") != username]
+        kept_tracks.append(track)
+    save_items(MUSIC_FILE, kept_tracks)
+
     save_items(PASTES_FILE, [paste for paste in get_items(PASTES_FILE) if paste.get("author") != username])
     save_items(WIKI_FILE, [article for article in get_items(WIKI_FILE) if article.get("author") != username])
 
@@ -868,6 +1194,17 @@ def remove_user_account(username: str) -> None:
     chat_store["dms"] = filtered_dms
     save_chat_store(chat_store)
 
+    notifications = get_notifications_store()
+    notifications.pop(username, None)
+    changed = False
+    for target, items in notifications.items():
+        filtered = [item for item in items if item.get("actor") != username]
+        if len(filtered) != len(items):
+            notifications[target] = filtered
+            changed = True
+    if changed or username not in notifications:
+        save_notifications_store(notifications)
+
 
 @app.route("/tube/watch/<video_id>", methods=["GET", "POST"])
 @login_required
@@ -897,6 +1234,8 @@ def tube_watch(video_id: str):
                 }
             )
             save_items(VIDEOS_FILE, videos)
+            if video.get("author") and video.get("author") != current_user():
+                add_notification(video.get("author"), f"{current_user()} commented on your video {video.get('title', 'Untitled')}.", url_for("tube_watch", video_id=video_id), kind="tube", actor=current_user())
         return redirect(url_for("tube_watch", video_id=video_id))
 
     related = [v for v in videos if v.get("id") != video_id][:8]
@@ -909,13 +1248,17 @@ def tube_vote(video_id: str):
     videos, video = find_by_id(VIDEOS_FILE, video_id)
     if video:
         voters = video.setdefault("voters", {})
+        voted = False
         if voters.get(current_user()):
             voters.pop(current_user(), None)
             video["votes"] = max(0, int(video.get("votes", 0)) - 1)
         else:
             voters[current_user()] = True
             video["votes"] = int(video.get("votes", 0)) + 1
+            voted = True
         save_items(VIDEOS_FILE, videos)
+        if voted and video.get("author") and video.get("author") != current_user():
+            add_notification(video.get("author"), f"{current_user()} liked your video {video.get('title', 'Untitled')}.", url_for("tube_watch", video_id=video_id), kind="tube", actor=current_user())
     return redirect(request.referrer or url_for("tube_watch", video_id=video_id))
 
 
@@ -1043,13 +1386,17 @@ def games_vote(game_id: str):
     items, game = find_by_id(GAMES_FILE, game_id)
     if game:
         voters = game.setdefault("voters", {})
+        voted = False
         if voters.get(current_user()):
             voters.pop(current_user(), None)
             game["votes"] = max(0, int(game.get("votes", 0)) - 1)
         else:
             voters[current_user()] = True
             game["votes"] = int(game.get("votes", 0)) + 1
+            voted = True
         save_items(GAMES_FILE, items)
+        if voted and game.get("author") and game.get("author") != current_user():
+            add_notification(game.get("author"), f"{current_user()} liked your game {game.get('title', 'Untitled')}.", url_for("games_play", game_id=game_id), kind="games", actor=current_user())
     return redirect(request.referrer or url_for("games_play", game_id=game_id))
 
 
@@ -1067,6 +1414,154 @@ def games_delete(game_id: str):
         kept.append(game)
     save_items(GAMES_FILE, kept)
     return redirect(url_for("games"))
+
+
+@app.route("/music")
+@login_required
+def music():
+    sort = request.args.get("sort", "new")
+    tracks = get_items(MUSIC_FILE)
+    if sort == "top":
+        tracks.sort(key=lambda track: (track.get("votes", 0), track.get("plays", 0)), reverse=True)
+    elif sort == "plays":
+        tracks.sort(key=lambda track: track.get("plays", 0), reverse=True)
+    else:
+        tracks.sort(key=lambda track: track.get("created_at", ""), reverse=True)
+    return render_template("music.html", tracks=tracks, sort=sort)
+
+
+@app.route("/music/upload", methods=["GET", "POST"])
+@login_required
+def music_upload():
+    error = None
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        artist = request.form.get("artist", "").strip()
+        album = request.form.get("album", "").strip()
+        desc = request.form.get("desc", "").strip()
+        audio = request.files.get("audio")
+        cover = request.files.get("cover")
+        if not title or not audio or not audio.filename:
+            error = "Title and audio file are required."
+        elif not allowed_file(audio.filename, ALLOWED_AUDIO_EXTS):
+            error = "Unsupported audio format."
+        else:
+            tracks = get_items(MUSIC_FILE)
+            item_id = make_id("track")
+            filename = save_upload(audio, MUSIC_DIR, ALLOWED_AUDIO_EXTS, item_id)
+            cover_name = save_upload(cover, COVERS_DIR, ALLOWED_IMAGE_EXTS, f"{item_id}_cover")
+            tracks.append(
+                {
+                    "id": item_id,
+                    "title": title,
+                    "artist": artist or current_user(),
+                    "album": album,
+                    "desc": desc,
+                    "author": current_user(),
+                    "filename": filename,
+                    "cover": cover_name,
+                    "plays": 0,
+                    "votes": 0,
+                    "voters": {},
+                    "comments": [],
+                    "created_at": now_utc().isoformat(),
+                    "ts": ts_human(),
+                }
+            )
+            save_items(MUSIC_FILE, tracks)
+            return redirect(url_for("music_track", track_id=item_id))
+    return render_template("music_upload.html", error=error)
+
+
+@app.route("/music/track/<track_id>", methods=["GET", "POST"])
+@login_required
+def music_track(track_id: str):
+    tracks, track = find_by_id(MUSIC_FILE, track_id)
+    if not track:
+        return redirect(url_for("music"))
+
+    played = get_client_set("played_tracks")
+    if request.method == "GET" and track_id not in played:
+        track["plays"] = int(track.get("plays", 0)) + 1
+        played.add(track_id)
+        store_client_set("played_tracks", played)
+        save_items(MUSIC_FILE, tracks)
+
+    if request.method == "POST":
+        body = request.form.get("body", "").strip()
+        if body:
+            track.setdefault("comments", []).append(
+                {
+                    "author": current_user(),
+                    "body": body,
+                    "ts": ts_human(),
+                }
+            )
+            save_items(MUSIC_FILE, tracks)
+            if track.get("author") and track.get("author") != current_user():
+                add_notification(track.get("author"), f"{current_user()} commented on your track {track.get('title', 'Untitled')}.", url_for("music_track", track_id=track_id), kind="music", actor=current_user())
+        return redirect(url_for("music_track", track_id=track_id))
+
+    related = [item for item in tracks if item.get("id") != track_id][:8]
+    return render_template("music_track.html", track=track, related=related)
+
+
+@app.route("/music/vote/<track_id>")
+@login_required
+def music_vote(track_id: str):
+    tracks, track = find_by_id(MUSIC_FILE, track_id)
+    if track:
+        voters = track.setdefault("voters", {})
+        voted = False
+        if voters.get(current_user()):
+            voters.pop(current_user(), None)
+            track["votes"] = max(0, int(track.get("votes", 0)) - 1)
+        else:
+            voters[current_user()] = True
+            track["votes"] = int(track.get("votes", 0)) + 1
+            voted = True
+        save_items(MUSIC_FILE, tracks)
+        if voted and track.get("author") and track.get("author") != current_user():
+            add_notification(track.get("author"), f"{current_user()} liked your track {track.get('title', 'Untitled')}.", url_for("music_track", track_id=track_id), kind="music", actor=current_user())
+    return redirect(request.referrer or url_for("music_track", track_id=track_id))
+
+
+@app.route("/music/edit/<track_id>", methods=["GET", "POST"])
+@login_required
+def music_edit(track_id: str):
+    tracks, track = find_by_id(MUSIC_FILE, track_id)
+    if not track or track.get("author") != current_user():
+        return redirect(url_for("music"))
+    error = None
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        if not title:
+            error = "Title is required."
+        else:
+            track["title"] = title
+            track["artist"] = request.form.get("artist", "").strip() or current_user()
+            track["album"] = request.form.get("album", "").strip()
+            track["desc"] = request.form.get("desc", "").strip()
+            save_items(MUSIC_FILE, tracks)
+            return redirect(url_for("music_track", track_id=track_id))
+    return render_template("music_edit.html", track=track, error=error)
+
+
+@app.route("/music/delete/<track_id>")
+@login_required
+def music_delete(track_id: str):
+    tracks = get_items(MUSIC_FILE)
+    kept = []
+    for track in tracks:
+        if track.get("id") == track_id and track.get("author") == current_user():
+            if track.get("filename"):
+                (MUSIC_DIR / track["filename"]).unlink(missing_ok=True)
+            if track.get("cover"):
+                (COVERS_DIR / track["cover"]).unlink(missing_ok=True)
+            continue
+        kept.append(track)
+    save_items(MUSIC_FILE, kept)
+    return redirect(url_for("music"))
 
 
 @app.route("/paste")
@@ -1184,9 +1679,12 @@ def wiki_edit(slug: str):
             if is_new:
                 articles.append(payload)
             else:
+                previous_author = article.get("author")
                 idx = articles.index(next(a for a in articles if a.get("slug") == slug))
                 articles[idx] = payload
             save_items(WIKI_FILE, articles)
+            if not is_new and previous_author and previous_author != current_user():
+                add_notification(previous_author, f"{current_user()} edited your wiki page {title}.", url_for("wiki_article", slug=target_slug), kind="wiki", actor=current_user())
             return redirect(url_for("wiki_article", slug=target_slug))
 
     return render_template("wiki_edit.html", art=article)
@@ -1256,14 +1754,18 @@ def forums_vote(thread_id: str):
     for thread in store.threads:
         if thread.get("id") == thread_id:
             voters = thread.setdefault("voters", {})
+            voted = False
             if voters.get(current_user()):
                 voters.pop(current_user(), None)
                 thread["votes"] = max(0, int(thread.get("votes", 0)) - 1)
             else:
                 voters[current_user()] = True
                 thread["votes"] = int(thread.get("votes", 0)) + 1
+                voted = True
             thread["updated_at"] = now_utc().isoformat()
             store.save()
+            if voted and thread.get("author") and thread.get("author") != current_user():
+                add_notification(thread.get("author"), f"{current_user()} liked your forum thread {thread.get('title', 'Untitled')}.", url_for("forums", forum=thread.get("subforum", "general")), kind="forums", actor=current_user())
             break
     return redirect(url_for("forums"))
 
@@ -1291,6 +1793,8 @@ def forums_comment(thread_id: str):
             )
             thread["updated_at"] = now_utc().isoformat()
             store.save()
+            if thread.get("author") and thread.get("author") != current_user():
+                add_notification(thread.get("author"), f"{current_user()} replied to your thread {thread.get('title', 'Untitled')}.", url_for("forums", forum=target_forum), kind="forums", actor=current_user())
             break
     return redirect(url_for("forums", forum=target_forum))
 
@@ -1388,6 +1892,7 @@ def socket_message(data):
         thread.append(payload)
         thread[:] = thread[-200:]
         save_chat_store(store)
+        add_notification(recipient, f"New DM from {sender}.", url_for("chat", dm=sender), kind="chat", actor=sender)
         for target in {sender, recipient}:
             for sid in user_sids.get(target, set()):
                 socketio.emit("direct_message", serialize_message(payload, target), to=sid)
@@ -1502,10 +2007,13 @@ def bootstrap_files() -> None:
         (USERS_FILE, {}),
         (VIDEOS_FILE, []),
         (GAMES_FILE, []),
+        (MUSIC_FILE, []),
         (PASTES_FILE, []),
         (WIKI_FILE, []),
         (FORUMS_FILE, []),
         (CHAT_FILE, []),
+        (NOTIFICATIONS_FILE, {}),
+        (DOWNLOADS_FILE, []),
     ]:
         if not path.exists():
             save_json(path, default)

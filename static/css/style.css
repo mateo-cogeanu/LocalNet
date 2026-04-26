@@ -374,6 +374,25 @@ nav::after {
 }
 
 .nav-icon-btn { padding: 10px; }
+.nav-badge-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.nav-badge-count {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #081018;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
 
 .wrap, .wide {
   width: min(1120px, calc(100% - 32px));
@@ -1100,6 +1119,71 @@ textarea {
   border-color: color-mix(in srgb, var(--red) 32%, transparent);
 }
 
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.admin-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+  background: color-mix(in srgb, var(--surface2) 70%, transparent);
+}
+
+.admin-jobs {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.admin-job-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.045);
+  background: color-mix(in srgb, var(--surface2) 72%, transparent);
+}
+
+.job-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.job-status {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.status-queued,
+.status-downloading {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.status-completed {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
+}
+
+.status-error {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  color: var(--red);
+}
+
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -1367,6 +1451,67 @@ textarea {
   background: var(--green);
 }
 
+.notifications-card {
+  padding: 10px 16px;
+}
+
+.notification-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.notification-row:last-child {
+  border-bottom: 0;
+}
+
+.notification-row.unread .notification-copy strong {
+  color: var(--text);
+}
+
+.notification-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.music-card-thumb {
+  aspect-ratio: 1 / 1;
+}
+
+.music-hero {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  padding: 20px;
+  align-items: start;
+}
+
+.music-cover,
+.music-cover-fallback {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 24px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface2) 76%, transparent);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.music-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.music-cover-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--text2);
+}
+
 .forum-thread { margin-bottom: 18px; }
 .subforum-grid {
   display: grid;
@@ -1601,6 +1746,13 @@ html.compact nav { padding: 10px 18px; }
     border-top: 1px solid rgba(255,255,255,0.04);
   }
   .page-header, .forum-top, .forum-comment-actions, .chat-input {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-job-row,
+  .notification-row,
+  .music-hero {
+    grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
   }

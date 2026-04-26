@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Edit Track — Music{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="page-header"><h1>Edit Track</h1></div>
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <div class="card">
+    <form method="post">
+      <div class="form-group"><label>Title</label><input type="text" name="title" value="{{ track.title }}" required></div>
+      <div class="form-group"><label>Artist</label><input type="text" name="artist" value="{{ track.artist }}"></div>
+      <div class="form-group"><label>Album</label><input type="text" name="album" value="{{ track.album }}"></div>
+      <div class="form-group"><label>Description</label><textarea name="desc">{{ track.desc }}</textarea></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-accent" type="submit">Save Changes</button>
+        <a href="/music/delete/{{ track.id }}" class="btn btn-ghost" style="color:var(--red)">Delete Track</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

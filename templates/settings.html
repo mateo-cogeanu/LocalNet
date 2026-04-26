@@ -10,6 +10,7 @@
       <button class="s-nav-btn active" data-tab="profile" onclick="showTab('profile')">Profile</button>
       <button class="s-nav-btn" data-tab="themes" onclick="showTab('themes')">Themes</button>
       <button class="s-nav-btn" data-tab="display" onclick="showTab('display')">Display</button>
+      {% if current_is_admin %}<button class="s-nav-btn" data-tab="setup" onclick="showTab('setup')">Setup</button>{% endif %}
       <button class="s-nav-btn" data-tab="account" onclick="showTab('account')">Account</button>
     </div>
     <div>
@@ -126,6 +127,71 @@
           </div>
         </div>
       </div>
+
+      {% if current_is_admin %}
+      <div class="s-panel" id="panel-setup">
+        <div class="s-section">
+          <h3>Admin Setup</h3>
+          <p class="toggle-sub">Your admin badge comes from the host-managed <code>data/admins.txt</code> file. This setup area is only visible to usernames listed there.</p>
+        </div>
+
+        <div class="s-section">
+          <h3>N.O.M.A.D Wiki Seeds</h3>
+          <div class="admin-grid">
+            {% for slug, pack in wiki_packs.items() %}
+            <form method="post" class="admin-card">
+              <input type="hidden" name="action" value="seed_wiki_pack">
+              <input type="hidden" name="pack" value="{{ slug }}">
+              <strong>{{ pack.name }}</strong>
+              <p class="toggle-sub">{{ pack.desc }}</p>
+              <div class="meta">{{ pack.topics|length }} pages</div>
+              <button class="btn btn-accent btn-sm" type="submit">Seed Pack</button>
+            </form>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="s-section">
+          <h3>Kiwix ZIM Downloads</h3>
+          <p class="toggle-sub">These presets download official Wikipedia ZIM archives from Kiwix so you can stash offline knowledge on the LocalNet host machine.</p>
+          <div class="admin-grid">
+            {% for slug, preset in zim_presets.items() %}
+            <form method="post" class="admin-card">
+              <input type="hidden" name="action" value="download_zim">
+              <input type="hidden" name="preset" value="{{ slug }}">
+              <strong>{{ preset.name }}</strong>
+              <p class="toggle-sub">{{ preset.desc }}</p>
+              <div class="meta">{{ preset.size }}</div>
+              <button class="btn btn-accent btn-sm" type="submit">Download ZIM</button>
+            </form>
+            {% endfor %}
+          </div>
+          <div class="admin-jobs">
+            {% if download_jobs %}
+            {% for job in download_jobs %}
+            <div class="admin-job-row">
+              <div>
+                <strong>{{ job.name }}</strong>
+                <div class="toggle-sub">{{ job.filename }}</div>
+              </div>
+              <div class="job-meta">
+                <span class="job-status status-{{ job.status }}">{{ job.status }}</span>
+                <span class="meta">{{ job.size }}</span>
+                {% if job.bytes_total %}
+                <span class="meta">{{ ((job.bytes_downloaded / job.bytes_total) * 100)|round(1) }}%</span>
+                {% elif job.error %}
+                <span class="meta">{{ job.error }}</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="toggle-sub">No ZIM downloads yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <div class="s-panel" id="panel-account">
         <div class="s-section">

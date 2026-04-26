@@ -2,6 +2,12 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1118
+
+- Added a Notifications page with unread counts in the nav, plus notification events for DMs, likes, comments, and selected wiki/forum activity.
+- Added a new Music app with track uploads, playback, likes, comments, editing, and deletion.
+- Added an admin-only Setup tab in Settings that exposes N.O.M.A.D-style wiki seed packs and official Kiwix Wikipedia ZIM download presets with background job tracking.
+
 ## 2026.04.25_2203
 
 - Added deeper browser-side microphone diagnostics for DM calling, including raw WebRTC error details and visible audio-input counts.

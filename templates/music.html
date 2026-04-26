@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Music — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wide">
+  <div class="page-header">
+    <h1>⟨LocalNet⟩ Music</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="sort-tabs">
+        <button class="sort-tab {% if sort=='new' %}active{% endif %}" onclick="location.href='/music?sort=new'">New</button>
+        <button class="sort-tab {% if sort=='top' %}active{% endif %}" onclick="location.href='/music?sort=top'">Top</button>
+        <button class="sort-tab {% if sort=='plays' %}active{% endif %}" onclick="location.href='/music?sort=plays'">Most Played</button>
+      </div>
+      <a href="/music/upload" class="btn btn-accent">Upload</a>
+    </div>
+  </div>
+  {% if tracks %}
+  <div class="tube-grid">
+    {% for track in tracks %}
+    <article class="tube-card">
+      <a href="/music/track/{{ track.id }}" class="media-link tube-card-link">
+      <div class="vid-thumb tube-card-thumb music-card-thumb">
+        {% if track.cover %}
+        <img src="/uploads/covers/{{ track.cover }}" style="width:100%;height:100%;object-fit:cover">
+        {% else %}
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        {% endif %}
+      </div>
+      <div class="tube-card-body">
+        <div class="tube-card-avatar">{{ track.author[0].upper() }}</div>
+        <div class="tube-card-copy">
+          <div class="vid-title">{{ track.title }}</div>
+          <div class="vid-meta">{{ track.artist or track.author }} {% if is_admin_user(track.author) %}<span class="admin-badge">Admin</span>{% endif %}</div>
+          <div class="vid-meta">{{ track.plays }} plays &nbsp;·&nbsp; {{ track.votes }}▲</div>
+          {% if track.album %}
+          <div class="vid-meta">{{ track.album }}</div>
+          {% endif %}
+        </div>
+      </div>
+      </a>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="inset" style="text-align:center;padding:52px;color:var(--text2)">
+    No tracks yet — <a href="/music/upload">upload the first one</a>.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

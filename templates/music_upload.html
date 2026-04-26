@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Upload Track — Music{% endblock %}
+{% block body %}
+<div class="wrap">
+  <div class="page-header"><h1>Upload Track</h1></div>
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      <div class="form-group"><label>Title</label><input type="text" name="title" required></div>
+      <div class="form-group"><label>Artist</label><input type="text" name="artist" placeholder="Defaults to your username"></div>
+      <div class="form-group"><label>Album</label><input type="text" name="album"></div>
+      <div class="form-group"><label>Description</label><textarea name="desc" placeholder="Notes, mood, credits, links to the story behind the track."></textarea></div>
+      <div class="form-group">
+        <label>Audio File</label>
+        <div class="file-drop"><input type="file" name="audio" id="audio-in" accept="audio/*" required> Click or drag & drop audio</div>
+        <div class="file-name" id="audio-name"></div>
+      </div>
+      <div class="form-group">
+        <label>Cover Art</label>
+        <div class="file-drop"><input type="file" name="cover" id="cover-in" accept="image/*"> Click or drag & drop image</div>
+        <div class="file-preview" id="cover-prev"><img src=""></div>
+        <div class="file-name" id="cover-name"></div>
+      </div>
+      <button class="btn btn-accent" type="submit">Upload Track</button>
+    </form>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  initDrop('audio-in', null, 'audio-name');
+  initDrop('cover-in', 'cover-prev', 'cover-name');
+});
+</script>
+{% endblock %}

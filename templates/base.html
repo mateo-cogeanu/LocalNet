@@ -60,6 +60,12 @@
       Games
     </a>
 
+    <!-- Music -->
+    <a href="/music" {% if 'music' in request.path %}class="active"{% endif %}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      Music
+    </a>
+
     <!-- Chat -->
     <a href="/chat" {% if 'chat' in request.path %}class="active"{% endif %}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
@@ -77,6 +83,14 @@
       <span>{{ user }}</span>
       {% if current_is_admin %}<span class="admin-badge">Admin</span>{% endif %}
     </span>
+    <a href="/notifications" class="btn btn-ghost btn-sm nav-icon-btn {% if 'notifications' in request.path %}active{% endif %}" title="Notifications">
+      <span class="nav-badge-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        {% if notification_unread_count %}
+        <span class="nav-badge-count">{{ notification_unread_count }}</span>
+        {% endif %}
+      </span>
+    </a>
     <a href="/settings" class="btn btn-ghost btn-sm nav-icon-btn" title="Settings">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="M5.64 5.64l2.12 2.12"/><path d="M16.24 16.24l2.12 2.12"/><path d="M5.64 18.36l2.12-2.12"/><path d="M16.24 7.76l2.12-2.12"/><circle cx="12" cy="12" r="3.5"/></svg>
     </a>
