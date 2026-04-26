@@ -8,8 +8,10 @@ import json
 import os
 import secrets
 import shutil
+import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from dataclasses import dataclass
@@ -53,6 +55,7 @@ CHAT_FILE = DATA_DIR / "chat.json"
 NOTIFICATIONS_FILE = DATA_DIR / "notifications.json"
 MUSIC_FILE = DATA_DIR / "music.json"
 DOWNLOADS_FILE = DATA_DIR / "downloads.json"
+LIBRARY_FILE = DATA_DIR / "library.json"
 SECRET_FILE = DATA_DIR / "secret_key.txt"
 ADMINS_FILE = DATA_DIR / "admins.txt"
 
@@ -70,6 +73,9 @@ ALLOWED_VIDEO_EXTS = {".mp4", ".webm", ".ogv", ".mov", ".m4v"}
 ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 ALLOWED_GAME_EXTS = {".zip", ".html", ".htm"}
 ALLOWED_AUDIO_EXTS = {".mp3", ".m4a", ".aac", ".wav", ".ogg", ".oga", ".flac", ".opus", ".webm"}
+KIWIX_PORT = int(os.environ.get("LOCALNET_KIWIX_PORT", "2462"))
+KIWIX_ROOT = "/offlinewiki"
+KIWIX_BIN = os.environ.get("LOCALNET_KIWIX_BIN") or shutil.which("kiwix-serve")
 
 FORUM_SECTIONS = [
     {"slug": "general", "name": "General", "desc": "Everything local and everything else."},
@@ -321,6 +327,15 @@ def save_download_jobs(jobs: list[dict[str, Any]]) -> None:
     save_json(DOWNLOADS_FILE, jobs)
 
 
+def get_library_state() -> dict[str, Any]:
+    raw = load_json(LIBRARY_FILE, {})
+    return raw if isinstance(raw, dict) else {}
+
+
+def save_library_state(state: dict[str, Any]) -> None:
+    save_json(LIBRARY_FILE, state)
+
+
 def format_bytes(num: int | float | None) -> str:
     value = float(num or 0)
     units = ["B", "KB", "MB", "GB", "TB"]
@@ -342,6 +357,75 @@ def resolve_downloaded_zim(filename: str) -> Path | None:
         return alt
     matches = sorted(ZIM_DIR.glob(f"{filename}*"))
     return matches[0] if matches else None
+
+
+def process_alive(pid: int | None) -> bool:
+    if not pid:
+        return False
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except OSError:
+        return False
+
+
+def current_library_reader() -> dict[str, Any]:
+    state = get_library_state()
+    pid = int(state.get("pid") or 0)
+    if not process_alive(pid):
+        if state:
+            state["pid"] = 0
+            state["status"] = "stopped"
+            save_library_state(state)
+        return state
+    return state
+
+
+def stop_library_reader() -> None:
+    state = get_library_state()
+    pid = int(state.get("pid") or 0)
+    if pid and process_alive(pid):
+        try:
+            os.kill(pid, 15)
+        except OSError:
+            pass
+    save_library_state({"pid": 0, "status": "stopped", "port": KIWIX_PORT})
+
+
+def start_library_reader(filename: str) -> tuple[bool, str]:
+    if not KIWIX_BIN:
+        return False, "kiwix-serve is not installed on this host yet."
+    path = resolve_downloaded_zim(filename)
+    if not path:
+        return False, "That downloaded Wikipedia file could not be found."
+    state = current_library_reader()
+    if state.get("active_filename") == path.name and process_alive(state.get("pid")):
+        return True, ""
+    stop_library_reader()
+    proc = subprocess.Popen(
+        [
+            KIWIX_BIN,
+            f"--port={KIWIX_PORT}",
+            f"--urlRootLocation={KIWIX_ROOT}",
+            str(path),
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    time.sleep(0.7)
+    if proc.poll() is not None:
+        return False, "kiwix-serve could not start for that archive."
+    save_library_state(
+        {
+            "pid": proc.pid,
+            "status": "running",
+            "port": KIWIX_PORT,
+            "active_filename": path.name,
+            "started_at": now_utc().isoformat(),
+            "started_ts": ts_human(),
+        }
+    )
+    return True, ""
 
 
 def ensure_account_defaults(username: str, account: dict[str, Any]) -> bool:
@@ -915,6 +999,7 @@ def notifications():
 @app.route("/library")
 @login_required
 def library():
+    reader = current_library_reader()
     zim_files = []
     seen = set()
     for job in sorted(get_download_jobs(), key=lambda item: item.get("created_at", ""), reverse=True):
@@ -930,6 +1015,7 @@ def library():
                 "filename": path.name,
                 "size": format_bytes(path.stat().st_size),
                 "url": url_for("library_zim_file", filename=path.name),
+                "reader_url": url_for("library_read", filename=path.name),
             }
         )
     for path in sorted(ZIM_DIR.iterdir()):
@@ -941,9 +1027,10 @@ def library():
                 "filename": path.name,
                 "size": format_bytes(path.stat().st_size),
                 "url": url_for("library_zim_file", filename=path.name),
+                "reader_url": url_for("library_read", filename=path.name),
             }
         )
-    return render_template("library.html", zim_files=zim_files, wiki_packs=WIKI_PACKS)
+    return render_template("library.html", zim_files=zim_files, wiki_packs=WIKI_PACKS, kiwix_available=bool(KIWIX_BIN), library_reader=reader)
 
 
 @app.route("/library/zim/<path:filename>")
@@ -951,6 +1038,48 @@ def library():
 def library_zim_file(filename: str):
     safe_name = Path(filename).name
     return send_from_directory(ZIM_DIR, safe_name, as_attachment=True)
+
+
+@app.route("/library/read/<path:filename>")
+@login_required
+def library_read(filename: str):
+    safe_name = Path(filename).name
+    ok, error = start_library_reader(safe_name)
+    return render_template(
+        "library_reader.html",
+        filename=safe_name,
+        reader_ready=ok,
+        reader_error=error,
+        kiwix_available=bool(KIWIX_BIN),
+        iframe_src=f"{KIWIX_ROOT}/",
+    )
+
+
+@app.route("/offlinewiki/", defaults={"proxy_path": ""})
+@app.route("/offlinewiki/<path:proxy_path>")
+@login_required
+def offlinewiki_proxy(proxy_path: str):
+    state = current_library_reader()
+    if not process_alive(state.get("pid")):
+        return Response("Offline wiki reader is not running.", status=503, mimetype="text/plain; charset=utf-8")
+    target = f"http://127.0.0.1:{state.get('port', KIWIX_PORT)}{KIWIX_ROOT}"
+    if proxy_path:
+        target = f"{target}/{proxy_path}"
+    if request.query_string:
+        target = f"{target}?{request.query_string.decode()}"
+    try:
+        upstream = urllib.request.Request(target, headers={"User-Agent": "LocalNet/1.0"})
+        with urllib.request.urlopen(upstream, timeout=30) as response:
+            body = response.read()
+            headers = []
+            for key, value in response.headers.items():
+                if key.lower() in {"content-type", "content-length", "cache-control", "etag", "last-modified"}:
+                    headers.append((key, value))
+            return Response(body, status=response.status, headers=headers)
+    except urllib.error.HTTPError as exc:
+        return Response(exc.read(), status=exc.code, mimetype=exc.headers.get_content_type())
+    except Exception:
+        return Response("Could not reach the offline wiki reader.", status=502, mimetype="text/plain; charset=utf-8")
 
 
 @app.route("/setup/downloads")
@@ -2128,6 +2257,7 @@ def bootstrap_files() -> None:
         (CHAT_FILE, []),
         (NOTIFICATIONS_FILE, {}),
         (DOWNLOADS_FILE, []),
+        (LIBRARY_FILE, {}),
     ]:
         if not path.exists():
             save_json(path, default)

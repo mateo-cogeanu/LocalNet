@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1132
+
+- Added an embedded Offline Wiki Reader flow so downloaded Wikipedia archives can be opened inside LocalNet instead of only being treated as files.
+- Wired LocalNet to `kiwix-serve` with a prefixed reader mount and a built-in proxy route, so the archive can be browsed through the app when the host has Kiwix installed.
+
 ## 2026.04.26_1130
 
 - Fixed the Offline Library so completed Wikipedia downloads show up even when the saved file on disk uses a slightly different suffix than the preset expected.

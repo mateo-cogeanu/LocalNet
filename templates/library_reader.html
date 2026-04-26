@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Offline Wiki Reader — ⟨LocalNet⟩{% endblock %}
+{% block body %}
+<div class="wide">
+  <div class="page-header">
+    <h1>Offline Wiki Reader</h1>
+    <a href="/library" class="btn btn-ghost btn-sm">Back to Library</a>
+  </div>
+  {% if reader_ready %}
+  <div class="s-section" style="padding:0;overflow:hidden">
+    <div class="reader-topbar">
+      <div>
+        <strong>{{ filename }}</strong>
+        <div class="toggle-sub">Browsing this archive through LocalNet.</div>
+      </div>
+      <a href="{{ iframe_src }}" target="_blank" rel="noreferrer" class="btn btn-ghost btn-sm">Open in Tab</a>
+    </div>
+    <iframe src="{{ iframe_src }}" class="wiki-reader-frame" title="Offline wiki reader"></iframe>
+  </div>
+  {% else %}
+  <div class="error-box">{{ reader_error }}</div>
+  {% if not kiwix_available %}
+  <div class="s-section">
+    <h3>Install Kiwix</h3>
+    <p class="toggle-sub">LocalNet can only browse downloaded Wikipedia archives when <code>kiwix-serve</code> is installed on the host machine.</p>
+    <div class="inset" style="font-family:var(--mono)">brew install kiwix-tools</div>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

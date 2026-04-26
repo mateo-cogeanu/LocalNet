@@ -9,7 +9,12 @@
 
   <div class="s-section">
     <h3>Wikipedia Archives</h3>
-    <p class="toggle-sub">Downloaded ZIM files live here. You can fetch the archive directly and open it in Kiwix or any ZIM-compatible reader.</p>
+    <p class="toggle-sub">Downloaded ZIM files live here. You can read them inside LocalNet when <code>kiwix-serve</code> is installed on the host, or fetch the archive directly for another ZIM-compatible reader.</p>
+    {% if library_reader.active_filename %}
+    <div class="success-box" style="margin-top:14px">Reader is currently serving <strong>{{ library_reader.active_filename }}</strong>.</div>
+    {% elif not kiwix_available %}
+    <div class="error-box" style="margin-top:14px">Install <code>kiwix-serve</code> on the host machine to browse downloaded Wikipedia files inside LocalNet.</div>
+    {% endif %}
     {% if zim_files %}
     <div class="admin-jobs">
       {% for file in zim_files %}
@@ -20,6 +25,7 @@
           <div class="toggle-sub">{{ file.size }}</div>
         </div>
         <div class="job-meta">
+          <a href="{{ file.reader_url }}" class="btn btn-ghost btn-sm">Read Here</a>
           <a href="{{ file.url }}" class="btn btn-accent btn-sm">Download File</a>
         </div>
       </div>
