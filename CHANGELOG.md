@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1124
+
+- Stopped tracking runtime JSON data and uploaded media in git so user comments, uploads, and other live LocalNet content stay local to the host machine.
+- Kept the host-managed `data/admins.txt` file outside that ignore rule so admin access can still be configured on the machine.
+
 ## 2026.04.26_1118
 
 - Added a Notifications page with unread counts in the nav, plus notification events for DMs, likes, comments, and selected wiki/forum activity.
