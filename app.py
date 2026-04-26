@@ -333,6 +333,17 @@ def format_bytes(num: int | float | None) -> str:
     return "0 B"
 
 
+def resolve_downloaded_zim(filename: str) -> Path | None:
+    direct = ZIM_DIR / filename
+    if direct.exists():
+        return direct
+    alt = ZIM_DIR / f"{filename}.zip"
+    if alt.exists():
+        return alt
+    matches = sorted(ZIM_DIR.glob(f"{filename}*"))
+    return matches[0] if matches else None
+
+
 def ensure_account_defaults(username: str, account: dict[str, Any]) -> bool:
     changed = False
     defaults = {
@@ -905,9 +916,28 @@ def notifications():
 @login_required
 def library():
     zim_files = []
-    for path in sorted(ZIM_DIR.glob("*.zim")):
+    seen = set()
+    for job in sorted(get_download_jobs(), key=lambda item: item.get("created_at", ""), reverse=True):
+        if job.get("status") != "completed":
+            continue
+        path = resolve_downloaded_zim(job.get("filename", ""))
+        if not path or path.name in seen:
+            continue
+        seen.add(path.name)
         zim_files.append(
             {
+                "title": job.get("name") or path.name,
+                "filename": path.name,
+                "size": format_bytes(path.stat().st_size),
+                "url": url_for("library_zim_file", filename=path.name),
+            }
+        )
+    for path in sorted(ZIM_DIR.iterdir()):
+        if not path.is_file() or path.name in seen:
+            continue
+        zim_files.append(
+            {
+                "title": path.name,
                 "filename": path.name,
                 "size": format_bytes(path.stat().st_size),
                 "url": url_for("library_zim_file", filename=path.name),

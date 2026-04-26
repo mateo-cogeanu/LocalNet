@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1130
+
+- Fixed the Offline Library so completed Wikipedia downloads show up even when the saved file on disk uses a slightly different suffix than the preset expected.
+- Kept library links tied to the actual downloaded file path instead of assuming every Kiwix file lands with the exact preset filename.
+
 ## 2026.04.26_1128
 
 - Removed the old seed-pack naming from the admin setup area so the offline library tools read more naturally inside LocalNet.

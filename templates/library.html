@@ -15,7 +15,8 @@
       {% for file in zim_files %}
       <div class="admin-job-row">
         <div>
-          <strong>{{ file.filename }}</strong>
+          <strong>{{ file.title }}</strong>
+          <div class="toggle-sub">{{ file.filename }}</div>
           <div class="toggle-sub">{{ file.size }}</div>
         </div>
         <div class="job-meta">
