@@ -22,8 +22,8 @@
   {% if not kiwix_available %}
   <div class="s-section">
     <h3>Install Kiwix</h3>
-    <p class="toggle-sub">LocalNet can only browse downloaded Wikipedia archives when <code>kiwix-serve</code> is available on the host machine. On macOS, installing the Kiwix app usually provides it.</p>
-    <div class="inset" style="font-family:var(--mono)">brew install --cask kiwix</div>
+    <p class="toggle-sub">LocalNet can only browse downloaded Wikipedia archives when <code>kiwix-serve</code> is available on the host machine. The Kiwix reader app alone is not enough, so LocalNet can also use a local <code>tools/kiwix-tools/kiwix-serve</code> bundle when it is present.</p>
+    <div class="inset" style="font-family:var(--mono)">LOCALNET_KIWIX_BIN=/full/path/to/kiwix-serve python3 app.py</div>
   </div>
   {% endif %}
   {% endif %}

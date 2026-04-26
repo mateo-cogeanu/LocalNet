@@ -44,6 +44,7 @@ DATA_DIR = APP_ROOT / "data"
 UPLOADS_DIR = APP_ROOT / "uploads"
 STATIC_DIR = APP_ROOT / "static"
 TEMPLATES_DIR = APP_ROOT / "templates"
+TOOLS_DIR = APP_ROOT / "tools"
 
 USERS_FILE = DATA_DIR / "users.json"
 VIDEOS_FILE = DATA_DIR / "videos.json"
@@ -79,22 +80,24 @@ KIWIX_ROOT = "/offlinewiki"
 
 def detect_kiwix_bin() -> str | None:
     env_path = os.environ.get("LOCALNET_KIWIX_BIN")
-    if env_path:
+    if env_path and Path(env_path).exists():
         return env_path
     shell_path = shutil.which("kiwix-serve")
     if shell_path:
         return shell_path
     candidates = [
+        TOOLS_DIR / "kiwix-tools" / "kiwix-serve",
         Path("/Applications/Kiwix.app/Contents/MacOS/kiwix-serve"),
         Path.home() / "Applications/Kiwix.app/Contents/MacOS/kiwix-serve",
     ]
     for candidate in candidates:
         if candidate.exists():
             return str(candidate)
+    for candidate in sorted(TOOLS_DIR.glob("kiwix-tools*/kiwix-serve")):
+        if candidate.exists():
+            return str(candidate)
     return None
 
-
-KIWIX_BIN = detect_kiwix_bin()
 
 FORUM_SECTIONS = [
     {"slug": "general", "name": "General", "desc": "Everything local and everything else."},
@@ -204,6 +207,7 @@ def ensure_dirs() -> None:
         PFP_DIR,
         BANNER_DIR,
         ZIM_DIR,
+        TOOLS_DIR,
         STATIC_DIR / "css",
         STATIC_DIR / "js",
     ]:
@@ -368,14 +372,38 @@ def format_bytes(num: int | float | None) -> str:
 
 
 def resolve_downloaded_zim(filename: str) -> Path | None:
-    direct = ZIM_DIR / filename
-    if direct.exists():
+    def normalize_zim_path(path: Path) -> Path | None:
+        if not path.exists() or not path.is_file():
+            return None
+        if path.suffix != ".zip":
+            return path
+        try:
+            with path.open("rb") as handle:
+                if handle.read(4)[:3] != b"ZIM":
+                    return path
+        except OSError:
+            return path
+        normalized = path.with_suffix("")
+        if normalized.exists():
+            return normalized
+        try:
+            path.rename(normalized)
+            return normalized
+        except OSError:
+            return path
+
+    direct = normalize_zim_path(ZIM_DIR / filename)
+    if direct:
         return direct
-    alt = ZIM_DIR / f"{filename}.zip"
-    if alt.exists():
+    alt = normalize_zim_path(ZIM_DIR / f"{filename}.zip")
+    if alt:
         return alt
     matches = sorted(ZIM_DIR.glob(f"{filename}*"))
-    return matches[0] if matches else None
+    for match in matches:
+        normalized = normalize_zim_path(match)
+        if normalized:
+            return normalized
+    return None
 
 
 def process_alive(pid: int | None) -> bool:
@@ -412,7 +440,8 @@ def stop_library_reader() -> None:
 
 
 def start_library_reader(filename: str) -> tuple[bool, str]:
-    if not KIWIX_BIN:
+    kiwix_bin = detect_kiwix_bin()
+    if not kiwix_bin:
         return False, "kiwix-serve is not installed on this host yet."
     path = resolve_downloaded_zim(filename)
     if not path:
@@ -423,17 +452,31 @@ def start_library_reader(filename: str) -> tuple[bool, str]:
     stop_library_reader()
     proc = subprocess.Popen(
         [
-            KIWIX_BIN,
+            kiwix_bin,
             f"--port={KIWIX_PORT}",
             f"--urlRootLocation={KIWIX_ROOT}",
             str(path),
         ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        start_new_session=True,
     )
-    time.sleep(0.7)
-    if proc.poll() is not None:
-        return False, "kiwix-serve could not start for that archive."
+    probe_url = f"http://127.0.0.1:{KIWIX_PORT}{KIWIX_ROOT}/"
+    for _ in range(20):
+        if proc.poll() is not None:
+            return False, "kiwix-serve could not start for that archive."
+        try:
+            with urllib.request.urlopen(probe_url, timeout=0.4) as resp:
+                if resp.status < 500:
+                    break
+        except Exception:
+            time.sleep(0.25)
+    else:
+        try:
+            proc.terminate()
+        except OSError:
+            pass
+        return False, "kiwix-serve started but never became reachable."
     save_library_state(
         {
             "pid": proc.pid,
@@ -1049,7 +1092,7 @@ def library():
                 "reader_url": url_for("library_read", filename=path.name),
             }
         )
-    return render_template("library.html", zim_files=zim_files, wiki_packs=WIKI_PACKS, kiwix_available=bool(KIWIX_BIN), library_reader=reader)
+    return render_template("library.html", zim_files=zim_files, wiki_packs=WIKI_PACKS, kiwix_available=bool(detect_kiwix_bin()), library_reader=reader)
 
 
 @app.route("/library/zim/<path:filename>")
@@ -1069,7 +1112,7 @@ def library_read(filename: str):
         filename=safe_name,
         reader_ready=ok,
         reader_error=error,
-        kiwix_available=bool(KIWIX_BIN),
+        kiwix_available=bool(detect_kiwix_bin()),
         iframe_src=f"{KIWIX_ROOT}/",
     )
 

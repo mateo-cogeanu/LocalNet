@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.26_1145
+
+- Made the offline library detect `kiwix-serve` live instead of caching the result at app startup, so installing the server bundle no longer forces a fragile path guess.
+- Added support for a local `tools/kiwix-tools` server bundle and auto-normalized mislabeled `.zim.zip` archives into real `.zim` files when they are actually ZIM data.
+
 ## 2026.04.26_1138
 
 - Added macOS app-bundle detection for `kiwix-serve`, so LocalNet can use the binary shipped inside the Kiwix app even when Homebrew does not provide a `kiwix-tools` formula.
