@@ -96,6 +96,19 @@ function showTab(name) {
   });
 }
 
+function showSetupStage(name, shouldScroll = true) {
+  document.querySelectorAll("[data-setup-stage-btn]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.setupStageBtn === name);
+  });
+  document.querySelectorAll(".setup-section").forEach((section) => {
+    section.classList.toggle("setup-section-active", section.id === `setup-stage-${name}`);
+  });
+  const target = document.getElementById(`setup-stage-${name}`);
+  if (shouldScroll && target && target.offsetParent !== null) {
+    target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
 const LOCALNET_SITE_MAP = {
   tube: { label: "Tube", href: "/tube", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>` },
   games: { label: "Games", href: "/games", icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4m-2-2v4M15 11h.01M17 13h.01"/></svg>` },
@@ -224,6 +237,8 @@ document.addEventListener("DOMContentLoaded", () => {
   loadFont();
   loadCompact();
   renderFavoriteSites();
+  const setupFirstStage = document.querySelector("[data-setup-stage-btn]");
+  if (setupFirstStage) showSetupStage(setupFirstStage.dataset.setupStageBtn, false);
   window.addEventListener("resize", () => {
     if (window.innerWidth > 860) {
       document.getElementById("site-nav")?.classList.remove("nav-open");

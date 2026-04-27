@@ -130,46 +130,141 @@
 
       {% if current_is_admin %}
       <div class="s-panel" id="panel-setup">
-        <div class="s-section">
-          <h3>Admin Setup</h3>
-          <p class="toggle-sub">Your admin badge comes from the host-managed <code>data/admins.txt</code> file. This setup area is only visible to usernames listed there.</p>
+        <div class="setup-orbit">
+          <div class="setup-orbit-glow setup-orbit-glow-a"></div>
+          <div class="setup-orbit-glow setup-orbit-glow-b"></div>
         </div>
 
-        <div class="s-section">
-          <h3>Wiki Seed Packs</h3>
-          <div class="admin-grid">
+        <div class="s-section setup-hero">
+          <div class="setup-hero-copy">
+            <div class="setup-kicker">Immersive Setup</div>
+            <h3>Bring this LocalNet node online.</h3>
+            <p class="toggle-sub">This control room turns the host machine into a richer local network: seed a built-in wiki, download offline Wikipedia archives, and keep an eye on what is already live.</p>
+            <div class="setup-stage-row">
+              <button class="setup-stage-btn active" type="button" data-setup-stage-btn="control" onclick="showSetupStage('control')">Command</button>
+              <button class="setup-stage-btn" type="button" data-setup-stage-btn="knowledge" onclick="showSetupStage('knowledge')">Knowledge</button>
+              <button class="setup-stage-btn" type="button" data-setup-stage-btn="library" onclick="showSetupStage('library')">Library</button>
+            </div>
+          </div>
+          <div class="setup-readiness-card">
+            <div class="setup-readiness-ring" style="--setup-progress: {{ setup_readiness }}%">
+              <div>
+                <strong>{{ setup_readiness }}%</strong>
+                <span>ready</span>
+              </div>
+            </div>
+            <div class="setup-readiness-copy">
+              <div class="toggle-label">System readiness</div>
+              <div class="toggle-sub">Admin access is wired through <code>data/admins.txt</code>. The rest of the stack comes alive as you seed content and mount offline archives.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setup-stat-grid">
+          <div class="setup-stat-card">
+            <span>{{ wiki_article_count }}</span>
+            <strong>Wiki Pages</strong>
+            <small>Local reference pages currently seeded.</small>
+          </div>
+          <div class="setup-stat-card">
+            <span>{{ completed_downloads }}</span>
+            <strong>Archives Ready</strong>
+            <small>Downloaded ZIM files available in the library.</small>
+          </div>
+          <div class="setup-stat-card">
+            <span>{% if active_downloads %}Live{% else %}Idle{% endif %}</span>
+            <strong>Transfer State</strong>
+            <small>{% if active_downloads %}Background downloads are currently moving.{% else %}No background archive jobs are running right now.{% endif %}</small>
+          </div>
+          <div class="setup-stat-card">
+            <span>{% if library_reader.active_filename %}Mounted{% elif kiwix_available %}Ready{% else %}Offline{% endif %}</span>
+            <strong>Reader Engine</strong>
+            <small>{% if library_reader.active_filename %}Serving {{ library_reader.active_filename }} now.{% elif kiwix_available %}Kiwix Server is installed and ready to mount an archive.{% else %}Install or unpack a local Kiwix Server binary on this host to browse ZIM files here.{% endif %}</small>
+          </div>
+        </div>
+
+        <div class="s-section setup-section setup-section-active" id="setup-stage-control">
+          <div class="setup-section-head">
+            <div>
+              <div class="setup-kicker">Command</div>
+              <h3>Host control</h3>
+            </div>
+            <div class="setup-pill">{% if current_is_admin %}Admin path open{% endif %}</div>
+          </div>
+          <div class="setup-console">
+            <div class="setup-console-row">
+              <span>admin source</span>
+              <strong>data/admins.txt</strong>
+            </div>
+            <div class="setup-console-row">
+              <span>reader status</span>
+              <strong>{% if library_reader.active_filename %}Serving {{ library_reader.active_filename }}{% elif kiwix_available %}Kiwix ready{% else %}Kiwix missing{% endif %}</strong>
+            </div>
+            <div class="setup-console-row">
+              <span>next move</span>
+              <strong>{% if not wiki_article_count %}Seed a wiki pack{% elif not completed_downloads %}Download a Wikipedia archive{% elif not library_reader.active_filename %}Open Library and mount an archive{% else %}Browse the offline library{% endif %}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="s-section setup-section" id="setup-stage-knowledge">
+          <div class="setup-section-head">
+            <div>
+              <div class="setup-kicker">Knowledge</div>
+              <h3>Wiki seed packs</h3>
+            </div>
+            <div class="setup-pill">{{ wiki_packs|length }} packs</div>
+          </div>
+          <p class="toggle-sub">These packs populate the built-in LocalNet wiki, so a new install can feel informed immediately instead of empty.</p>
+          <div class="admin-grid admin-grid-immersive">
             {% for slug, pack in wiki_packs.items() %}
-            <form method="post" class="admin-card">
+            <form method="post" class="admin-card setup-card">
               <input type="hidden" name="action" value="seed_wiki_pack">
               <input type="hidden" name="pack" value="{{ slug }}">
-              <strong>{{ pack.name }}</strong>
+              <div class="setup-card-top">
+                <strong>{{ pack.name }}</strong>
+                <span class="setup-card-badge">{{ pack.mode }}</span>
+              </div>
               <p class="toggle-sub">{{ pack.desc }}</p>
-              <div class="meta">{{ pack.topics|length }} pages</div>
-              <button class="btn btn-accent btn-sm" type="submit">Seed Pack</button>
+              <div class="setup-card-meta">
+                <span class="meta">{{ pack.topics|length }} pages</span>
+                <button class="btn btn-accent btn-sm" type="submit">Seed Pack</button>
+              </div>
             </form>
             {% endfor %}
           </div>
         </div>
 
-        <div class="s-section">
-          <h3>Kiwix ZIM Downloads</h3>
-          <p class="toggle-sub">These presets download official Wikipedia ZIM archives from Kiwix so you can stash offline knowledge on the LocalNet host machine.</p>
-          <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+        <div class="s-section setup-section" id="setup-stage-library">
+          <div class="setup-section-head">
+            <div>
+              <div class="setup-kicker">Library</div>
+              <h3>Offline Wikipedia archives</h3>
+            </div>
+            <div class="setup-pill">{% if kiwix_available %}reader ready{% else %}binary needed{% endif %}</div>
+          </div>
+          <p class="toggle-sub">These presets download official Wikipedia ZIM archives to the host so you can carry an offline reference layer inside LocalNet.</p>
+          <div class="setup-inline-actions">
             <a href="/library" class="btn btn-ghost btn-sm">Open Library</a>
           </div>
-          <div class="admin-grid">
+          <div class="admin-grid admin-grid-immersive">
             {% for slug, preset in zim_presets.items() %}
-            <form method="post" class="admin-card">
+            <form method="post" class="admin-card setup-card">
               <input type="hidden" name="action" value="download_zim">
               <input type="hidden" name="preset" value="{{ slug }}">
-              <strong>{{ preset.name }}</strong>
+              <div class="setup-card-top">
+                <strong>{{ preset.name }}</strong>
+                <span class="setup-card-badge">{{ preset.size }}</span>
+              </div>
               <p class="toggle-sub">{{ preset.desc }}</p>
-              <div class="meta">{{ preset.size }}</div>
-              <button class="btn btn-accent btn-sm" type="submit">Download ZIM</button>
+              <div class="setup-card-meta">
+                <span class="meta">Official Kiwix preset</span>
+                <button class="btn btn-accent btn-sm" type="submit">Download ZIM</button>
+              </div>
             </form>
             {% endfor %}
           </div>
-          <div class="admin-jobs" id="download-jobs" data-admin-downloads>
+          <div class="admin-jobs setup-jobs" id="download-jobs" data-admin-downloads>
             {% if download_jobs %}
             {% for job in download_jobs %}
             <div class="admin-job-row">

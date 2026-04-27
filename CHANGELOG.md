@@ -2,6 +2,11 @@
 
 Initial version: `2026.04.25_1900`
 
+## 2026.04.27_1541
+
+- Reworked the admin Setup tab into a more immersive launch-bay experience with a readiness ring, live system status cards, staged setup sections, and a stronger control-room visual hierarchy.
+- Added richer setup context from the backend so Settings can show wiki page counts, archive readiness, reader state, and more guided “what to do next” signals instead of plain standalone forms.
+
 ## 2026.04.26_1928
 
 - Fixed the offline wiki archive-root case so links to `/offlinewiki/content/<archive-slug>` no longer get incorrectly rewritten into `/offlinewiki/content/<archive-slug>/<archive-slug>`.

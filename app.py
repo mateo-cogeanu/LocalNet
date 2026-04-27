@@ -1326,6 +1326,7 @@ def settings():
     jobs = get_download_jobs()
     jobs.sort(key=lambda item: item.get("created_at", ""), reverse=True)
     active_downloads = False
+    completed_downloads = 0
     for job in jobs:
         total = int(job.get("bytes_total") or 0)
         done = int(job.get("bytes_downloaded") or 0)
@@ -1334,6 +1335,19 @@ def settings():
         job["progress_pct"] = round((done / total) * 100, 1) if total else 0
         if job.get("status") in {"queued", "downloading"}:
             active_downloads = True
+        if job.get("status") == "completed" and resolve_downloaded_zim(job.get("filename", "")):
+            completed_downloads += 1
+
+    library_reader = current_library_reader()
+    kiwix_available = bool(detect_kiwix_bin())
+    wiki_article_count = len(get_items(WIKI_FILE))
+    setup_checks = [
+        True,
+        wiki_article_count > 0,
+        completed_downloads > 0,
+        kiwix_available,
+    ]
+    setup_readiness = int(round((sum(1 for item in setup_checks if item) / len(setup_checks)) * 100))
 
     return render_template(
         "settings.html",
@@ -1347,6 +1361,11 @@ def settings():
         zim_presets=ZIM_PRESETS,
         download_jobs=jobs,
         active_downloads=active_downloads,
+        completed_downloads=completed_downloads,
+        library_reader=library_reader,
+        kiwix_available=kiwix_available,
+        wiki_article_count=wiki_article_count,
+        setup_readiness=setup_readiness,
     )
 
 
